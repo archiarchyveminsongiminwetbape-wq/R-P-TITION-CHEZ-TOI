@@ -1,5 +1,6 @@
 import './App.css'
 import { useTranslation } from 'react-i18next'
+import { Outlet, Link } from 'react-router-dom'
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -9,7 +10,11 @@ function App() {
       <header style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <img src="/logo.png" alt="Logo" width={56} height={56} />
         <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0 }}>{t('title')}</h1>
+          <h1 style={{ margin: 0 }}>
+            <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
+              {t('title')}
+            </Link>
+          </h1>
           <p style={{ margin: 0, opacity: 0.8 }}>{t('subtitle')}</p>
         </div>
         <select
@@ -23,9 +28,7 @@ function App() {
       </header>
 
       <main style={{ marginTop: 24 }}>
-        <a href="#" style={{ padding: '10px 16px', border: '1px solid #ddd', borderRadius: 8, textDecoration: 'none' }}>
-          {t('cta')}
-        </a>
+        <Outlet />
       </main>
     </div>
   )

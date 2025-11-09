@@ -35,7 +35,6 @@ create table if not exists public.teacher_profiles (
   bio text,
   hourly_rate numeric(10,2) check (hourly_rate >= 0),
   levels public.level[] default '{college,lycee}',
-  neighborhoods int[] references public.neighborhoods(id)[],
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -44,6 +43,13 @@ create table if not exists public.teacher_subjects (
   teacher_id uuid references public.teacher_profiles(user_id) on delete cascade,
   subject_id int references public.subjects(id) on delete cascade,
   primary key (teacher_id, subject_id)
+);
+
+-- link teachers to neighborhoods (many-to-many)
+create table if not exists public.teacher_neighborhoods (
+  teacher_id uuid references public.teacher_profiles(user_id) on delete cascade,
+  neighborhood_id int references public.neighborhoods(id) on delete cascade,
+  primary key (teacher_id, neighborhood_id)
 );
 
 create table if not exists public.children (
@@ -126,6 +132,7 @@ returns uuid language sql stable as $$ select auth.uid() $$;
 alter table public.profiles enable row level security;
 alter table public.teacher_profiles enable row level security;
 alter table public.teacher_subjects enable row level security;
+alter table public.teacher_neighborhoods enable row level security;
 alter table public.children enable row level security;
 alter table public.availabilities enable row level security;
 alter table public.bookings enable row level security;
@@ -150,6 +157,12 @@ create policy "teacher_profiles_update_self" on public.teacher_profiles
 create policy "teacher_subjects_read" on public.teacher_subjects
   for select using (true);
 create policy "teacher_subjects_manage_self" on public.teacher_subjects
+  for all using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
+
+-- Teacher neighborhoods
+create policy "teacher_neighborhoods_read" on public.teacher_neighborhoods
+  for select using (true);
+create policy "teacher_neighborhoods_manage_self" on public.teacher_neighborhoods
   for all using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
 
 -- Children (parents only)
@@ -197,7 +210,8 @@ create policy "reviews_insert_parent" on public.reviews
 -- 7) Public read-only refs
 create index if not exists idx_teacher_subjects_subject on public.teacher_subjects(subject_id);
 create index if not exists idx_teacher_profiles_levels on public.teacher_profiles using gin(levels);
-create index if not exists idx_teacher_profiles_neighborhoods on public.teacher_profiles using gin(neighborhoods);
+create index if not exists idx_teacher_neighborhoods_teacher on public.teacher_neighborhoods(teacher_id);
+create index if not exists idx_teacher_neighborhoods_neighborhood on public.teacher_neighborhoods(neighborhood_id);
 create index if not exists idx_bookings_teacher on public.bookings(teacher_id);
 create index if not exists idx_bookings_parent on public.bookings(parent_id);
 

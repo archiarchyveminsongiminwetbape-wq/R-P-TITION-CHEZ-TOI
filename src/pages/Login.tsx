@@ -1,0 +1,38 @@
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { Link, useNavigate } from 'react-router-dom'
+
+export default function Login() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false)
+    if (error) setError(error.message)
+    else navigate('/')
+  }
+
+  return (
+    <section className="p-6 max-w-md mx-auto">
+      <h2 className="text-xl font-semibold mb-4">Connexion</h2>
+      <form onSubmit={onSubmit} className="space-y-3">
+        <input className="w-full border p-2 rounded" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="w-full border p-2 rounded" type="password" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button className="px-4 py-2 border rounded" disabled={loading}>
+          {loading ? '...' : 'Se connecter'}
+        </button>
+      </form>
+      <p className="mt-3 text-sm">
+        Pas de compte ? <Link to="/register" className="underline">Créer un compte</Link>
+      </p>
+    </section>
+  )
+}
