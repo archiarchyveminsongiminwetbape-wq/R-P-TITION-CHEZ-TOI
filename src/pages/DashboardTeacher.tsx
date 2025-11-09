@@ -15,6 +15,10 @@ export default function DashboardTeacher() {
   const { session } = useAuth()
   const [rows, setRows] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [avails, setAvails] = useState<Array<{ id: string; weekday: number; start_time: string; end_time: string }>>([])
+  const [weekday, setWeekday] = useState<number>(1)
+  const [startTime, setStartTime] = useState('08:00')
+  const [endTime, setEndTime] = useState('10:00')
 
   async function load() {
     setLoading(true)
@@ -33,8 +37,24 @@ export default function DashboardTeacher() {
       .channel('teacher-bookings-' + (session?.user.id || ''))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `teacher_id=eq.${session?.user.id}` }, () => load())
       .subscribe()
+    // load availabilities
+    async function loadAvails() {
+      const { data } = await supabase
+        .from('availabilities')
+        .select('id,weekday,start_time,end_time')
+        .eq('teacher_id', session?.user.id)
+        .order('weekday', { ascending: true })
+        .order('start_time', { ascending: true })
+      setAvails((data as any) ?? [])
+    }
+    loadAvails()
+    const ch2 = supabase
+      .channel('teacher-avails-' + (session?.user.id || ''))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'availabilities', filter: `teacher_id=eq.${session?.user.id}` }, () => loadAvails())
+      .subscribe()
     return () => {
       supabase.removeChannel(ch)
+      supabase.removeChannel(ch2)
     }
   }, [session?.user.id])
 
@@ -48,6 +68,39 @@ export default function DashboardTeacher() {
       <h2 className="text-xl font-semibold">Tableau de bord Professeur</h2>
 
       {loading && <p>Chargement…</p>}
+
+      <div className="border rounded">
+        <div className="p-3 font-semibold border-b">Mes disponibilités</div>
+        <div className="p-3 grid md:grid-cols-4 gap-3">
+          <select className="border p-2 rounded" value={weekday} onChange={(e)=>setWeekday(Number(e.target.value))}>
+            <option value={0}>Dim</option>
+            <option value={1}>Lun</option>
+            <option value={2}>Mar</option>
+            <option value={3}>Mer</option>
+            <option value={4}>Jeu</option>
+            <option value={5}>Ven</option>
+            <option value={6}>Sam</option>
+          </select>
+          <input className="border p-2 rounded" type="time" value={startTime} onChange={(e)=>setStartTime(e.target.value)} />
+          <input className="border p-2 rounded" type="time" value={endTime} onChange={(e)=>setEndTime(e.target.value)} />
+          <button className="border rounded px-3" onClick={async ()=>{
+            if (!session?.user) return
+            await supabase.from('availabilities').insert({ teacher_id: session.user.id, weekday, start_time: startTime, end_time: endTime })
+          }}>Ajouter</button>
+        </div>
+        <ul className="divide-y">
+          {avails.map(a=> (
+            <li key={a.id} className="p-3 flex items-center gap-3">
+              <div className="flex-1 text-sm">
+                <span className="font-medium mr-2">{['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][a.weekday]}</span>
+                {a.start_time} - {a.end_time}
+              </div>
+              <button className="px-3 py-1 border rounded" onClick={async ()=>{ await supabase.from('availabilities').delete().eq('id', a.id) }}>Supprimer</button>
+            </li>
+          ))}
+          {avails.length === 0 && <li className="p-3 opacity-70">Aucune disponibilité</li>}
+        </ul>
+      </div>
 
       <div className="border rounded">
         <div className="p-3 font-semibold border-b">Demandes / Réservations</div>

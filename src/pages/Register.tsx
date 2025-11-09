@@ -32,8 +32,10 @@ export default function Register() {
       await supabase.from('profiles').update({ role: 'teacher', full_name: fullName }).eq('id', userId)
       await supabase.from('teacher_profiles').insert({ user_id: userId }).select().single()
     }
+    // redirect by role
     setLoading(false)
-    navigate('/')
+    if (role === 'teacher') navigate('/teacher')
+    else navigate('/parent')
   }
 
   return (

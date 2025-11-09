@@ -22,6 +22,7 @@ export default function TeacherProfile() {
   const [subjectId, setSubjectId] = useState<number | ''>('')
   const [neighborhoodId, setNeighborhoodId] = useState<number | ''>('')
   const [error, setError] = useState<string | null>(null)
+  const [availabilities, setAvailabilities] = useState<Array<{ weekday: number; start_time: string; end_time: string }>>([])
 
   useEffect(() => {
     if (!id) return
@@ -35,11 +36,12 @@ export default function TeacherProfile() {
       setProfile((p as any) ?? null)
       setTeacher((t as any) ?? null)
 
-      const [{ data: subjLinks }, { data: neiLinks }, { data: allSubj }, { data: allNei }] = await Promise.all([
+      const [{ data: subjLinks }, { data: neiLinks }, { data: allSubj }, { data: allNei }, { data: avs }] = await Promise.all([
         supabase.from('teacher_subjects').select('subject_id').eq('teacher_id', id),
         supabase.from('teacher_neighborhoods').select('neighborhood_id').eq('teacher_id', id),
         supabase.from('subjects').select('id,name').order('name'),
         supabase.from('neighborhoods').select('id,name').order('name'),
+        supabase.from('availabilities').select('weekday,start_time,end_time').eq('teacher_id', id).order('weekday', { ascending: true }).order('start_time', { ascending: true }),
       ])
 
       const subjIds = (subjLinks ?? []).map((x: any) => x.subject_id)
@@ -53,6 +55,7 @@ export default function TeacherProfile() {
       setNeighborhoods((neis ?? []).map((n: any) => n.name))
       setSubjectsList((allSubj ?? []) as any)
       setNeighborhoodsList((allNei ?? []) as any)
+      setAvailabilities((avs ?? []) as any)
 
       setLoading(false)
     }
@@ -76,6 +79,20 @@ export default function TeacherProfile() {
     const ends = new Date(endsAt)
     if (!(starts instanceof Date) || !(ends instanceof Date) || isNaN(starts.getTime()) || isNaN(ends.getTime()) || ends <= starts) {
       setError('Plage horaire invalide.')
+      return
+    }
+    // Validate against availabilities of the teacher (same weekday, within a range)
+    const weekday = starts.getDay() // 0-6
+    const toHM = (d: Date) => {
+      const h = d.getHours().toString().padStart(2, '0')
+      const m = d.getMinutes().toString().padStart(2, '0')
+      return `${h}:${m}`
+    }
+    const sHM = toHM(starts)
+    const eHM = toHM(ends)
+    const fits = availabilities.some((a) => a.weekday === weekday && a.start_time <= sHM && a.end_time >= eHM)
+    if (!fits) {
+      setError("Le créneau demandé n'est pas dans les disponibilités du professeur.")
       return
     }
     const { data, error } = await supabase
@@ -121,6 +138,18 @@ export default function TeacherProfile() {
         <div className="border rounded p-3">
           <h3 className="font-semibold mb-2">Quartiers</h3>
           <div className="text-sm">{neighborhoods.length ? neighborhoods.join(', ') : '—'}</div>
+        </div>
+        <div className="border rounded p-3 md:col-span-2">
+          <h3 className="font-semibold mb-2">Disponibilités</h3>
+          <ul className="grid md:grid-cols-2 gap-2 text-sm">
+            {availabilities.map((a, i) => (
+              <li key={i} className="border rounded p-2 bg-white/50">
+                <span className="font-medium mr-2">{['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][a.weekday]}</span>
+                {a.start_time} - {a.end_time}
+              </li>
+            ))}
+            {availabilities.length === 0 && <li className="opacity-70">Aucune disponibilité</li>}
+          </ul>
         </div>
       </div>
 

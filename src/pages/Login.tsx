@@ -14,9 +14,25 @@ export default function Login() {
     setLoading(true)
     setError(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (error) setError(error.message)
-    else navigate('/')
+    if (error) {
+      setLoading(false)
+      setError(error.message)
+      return
+    }
+    // get role and redirect
+    const { data: sess } = await supabase.auth.getSession()
+    const uid = sess.session?.user.id
+    if (uid) {
+      const { data: prof } = await supabase.from('profiles').select('role').eq('id', uid).single()
+      const role = prof?.role as 'parent' | 'teacher' | 'admin' | undefined
+      setLoading(false)
+      if (role === 'teacher') navigate('/teacher')
+      else if (role === 'parent') navigate('/parent')
+      else navigate('/')
+    } else {
+      setLoading(false)
+      navigate('/')
+    }
   }
 
   return (
