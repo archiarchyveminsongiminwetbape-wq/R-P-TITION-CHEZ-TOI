@@ -17,6 +17,7 @@ export default function TeacherProfile() {
   const [neighborhoods, setNeighborhoods] = useState<string[]>([])
   const [neighborhoodsList, setNeighborhoodsList] = useState<Array<{id:number;name:string}>>([])
   const [loading, setLoading] = useState(true)
+  const [dateDay, setDateDay] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [endsAt, setEndsAt] = useState('')
   const [subjectId, setSubjectId] = useState<number | ''>('')
@@ -65,6 +66,14 @@ export default function TeacherProfile() {
   if (loading) return <section className="p-6">Chargement…</section>
   if (!profile || !teacher) return <section className="p-6">Professeur introuvable.</section>
 
+  function applySlotToDate(slot: { start_time: string; end_time: string }) {
+    if (!dateDay) return
+    const startISO = `${dateDay}T${slot.start_time}`
+    const endISO = `${dateDay}T${slot.end_time}`
+    setStartsAt(startISO)
+    setEndsAt(endISO)
+  }
+
   async function createBooking() {
     setError(null)
     if (!session?.user || !id) {
@@ -95,6 +104,25 @@ export default function TeacherProfile() {
       setError("Le créneau demandé n'est pas dans les disponibilités du professeur.")
       return
     }
+    // Overlap check: any booking for this teacher with status pending/confirmed where
+    // existing.starts_at < requested.ends AND existing.ends_at > requested.starts
+    const { data: overlaps, error: ovErr } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('teacher_id', id)
+      .in('status', ['pending','confirmed'])
+      .lt('starts_at', ends.toISOString())
+      .gt('ends_at', starts.toISOString())
+
+    if (ovErr) {
+      setError(ovErr.message)
+      return
+    }
+    if ((overlaps?.length || 0) > 0) {
+      setError('Ce créneau chevauche une autre réservation.')
+      return
+    }
+
     const { data, error } = await supabase
       .from('bookings')
       .insert({
@@ -157,6 +185,10 @@ export default function TeacherProfile() {
         <h3 className="font-semibold">Réserver un créneau</h3>
         <div className="grid md:grid-cols-2 gap-3">
           <label className="text-sm">
+            Date
+            <input type="date" className="mt-1 w-full border p-2 rounded" value={dateDay} onChange={(e)=>setDateDay(e.target.value)} />
+          </label>
+          <label className="text-sm">
             Début
             <input type="datetime-local" className="mt-1 w-full border p-2 rounded" value={startsAt} onChange={(e)=>setStartsAt(e.target.value)} />
           </label>
@@ -164,6 +196,25 @@ export default function TeacherProfile() {
             Fin
             <input type="datetime-local" className="mt-1 w-full border p-2 rounded" value={endsAt} onChange={(e)=>setEndsAt(e.target.value)} />
           </label>
+          {dateDay && (
+            <label className="text-sm md:col-span-2">
+              Choisir un créneau disponible (préremplissage)
+              <select className="mt-1 w-full border p-2 rounded" onChange={(e)=>{
+                const idx = Number(e.target.value); if (!isNaN(idx)) applySlotToDate(availabilities[idx])
+              }}>
+                <option value="">—</option>
+                {availabilities
+                  .map((a, i)=>({a,i}))
+                  .filter(({a})=>{
+                    const wd = new Date(dateDay + 'T00:00:00').getDay();
+                    return a.weekday === wd
+                  })
+                  .map(({a,i})=> (
+                    <option key={i} value={i}>{['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][a.weekday]} {a.start_time} - {a.end_time}</option>
+                  ))}
+              </select>
+            </label>
+          )}
           <label className="text-sm">
             Matière (optionnel)
             <select className="mt-1 w-full border p-2 rounded" value={subjectId} onChange={(e)=>setSubjectId(e.target.value?Number(e.target.value):'')}>

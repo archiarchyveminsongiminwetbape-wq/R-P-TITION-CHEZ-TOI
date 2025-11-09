@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../providers/AuthProvider'
 
@@ -19,6 +19,18 @@ export default function DashboardTeacher() {
   const [weekday, setWeekday] = useState<number>(1)
   const [startTime, setStartTime] = useState('08:00')
   const [endTime, setEndTime] = useState('10:00')
+  // Profile edit state
+  const [fullName, setFullName] = useState('')
+  const [bio, setBio] = useState('')
+  const [rate, setRate] = useState<number | ''>('')
+  const [levels, setLevels] = useState<string[]>([])
+  const [subjects, setSubjects] = useState<Array<{id:number;name:string}>>([])
+  const [neighborhoods, setNeighborhoods] = useState<Array<{id:number;name:string}>>([])
+  const [selectedSubjects, setSelectedSubjects] = useState<number[]>([])
+  const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<number[]>([])
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -52,6 +64,29 @@ export default function DashboardTeacher() {
       .channel('teacher-avails-' + (session?.user.id || ''))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'availabilities', filter: `teacher_id=eq.${session?.user.id}` }, () => loadAvails())
       .subscribe()
+    // load profile + lists
+    async function loadProfile() {
+      if (!session?.user.id) return
+      const [{ data: prof }, { data: tprof }] = await Promise.all([
+        supabase.from('profiles').select('full_name,avatar_url').eq('id', session.user.id).single(),
+        supabase.from('teacher_profiles').select('bio,hourly_rate,levels').eq('user_id', session.user.id).single(),
+      ])
+      setFullName((prof?.full_name as string) || '')
+      setBio((tprof?.bio as string) || '')
+      setRate((tprof?.hourly_rate as number) ?? '')
+      setLevels(((tprof?.levels as string[]) || []) as string[])
+      const [{ data: subs }, { data: neis }, { data: linkSubs }, { data: linkNeis }] = await Promise.all([
+        supabase.from('subjects').select('id,name').order('name'),
+        supabase.from('neighborhoods').select('id,name').order('name'),
+        supabase.from('teacher_subjects').select('subject_id').eq('teacher_id', session.user.id),
+        supabase.from('teacher_neighborhoods').select('neighborhood_id').eq('teacher_id', session.user.id),
+      ])
+      setSubjects((subs as any) ?? [])
+      setNeighborhoods((neis as any) ?? [])
+      setSelectedSubjects(((linkSubs as any) ?? []).map((x: any) => x.subject_id))
+      setSelectedNeighborhoods(((linkNeis as any) ?? []).map((x: any) => x.neighborhood_id))
+    }
+    loadProfile()
     return () => {
       supabase.removeChannel(ch)
       supabase.removeChannel(ch2)
@@ -63,11 +98,105 @@ export default function DashboardTeacher() {
     load()
   }
 
+  const toggleArray = (arr: number[], v: number) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
+  const levelChecked = (l: string) => levels.includes(l)
+  const toggleLevel = (l: string) => setLevels(levelChecked(l) ? levels.filter((x) => x !== l) : [...levels, l])
+
+  async function saveProfile() {
+    if (!session?.user.id) return
+    try {
+      setSaving(true)
+      setNotice(null)
+      // avatar upload first
+      let avatar_url: string | undefined
+      if (avatarFile) {
+        const ext = avatarFile.name.split('.').pop() || 'png'
+        const path = `${session.user.id}/${Date.now()}.${ext}`
+        const { error: upErr } = await supabase.storage.from('avatars').upload(path, avatarFile, { upsert: true })
+        if (upErr) throw upErr
+        const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+        avatar_url = pub.publicUrl
+      }
+      // update profile + teacher profile
+      const profUpdate: any = { full_name: fullName }
+      if (avatar_url) profUpdate.avatar_url = avatar_url
+      await supabase.from('profiles').update(profUpdate).eq('id', session.user.id)
+      await supabase.from('teacher_profiles')
+        .update({ bio, hourly_rate: rate === '' ? null : Number(rate), levels })
+        .eq('user_id', session.user.id)
+      // sync join tables (simple approach: delete then insert)
+      await supabase.from('teacher_subjects').delete().eq('teacher_id', session.user.id)
+      if (selectedSubjects.length)
+        await supabase.from('teacher_subjects').insert(selectedSubjects.map((sid) => ({ teacher_id: session.user.id, subject_id: sid })))
+      await supabase.from('teacher_neighborhoods').delete().eq('teacher_id', session.user.id)
+      if (selectedNeighborhoods.length)
+        await supabase.from('teacher_neighborhoods').insert(selectedNeighborhoods.map((nid) => ({ teacher_id: session.user.id, neighborhood_id: nid })))
+      setNotice('Profil enregistré')
+    } catch (e: any) {
+      setNotice(e.message || 'Erreur lors de la sauvegarde')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <section className="p-6 space-y-4">
       <h2 className="text-xl font-semibold">Tableau de bord Professeur</h2>
 
       {loading && <p>Chargement…</p>}
+      {notice && <p className="text-sm p-2 border rounded bg-white/70">{notice}</p>}
+
+      <div className="border rounded">
+        <div className="p-3 font-semibold border-b">Mon profil</div>
+        <div className="p-3 grid gap-3 md:grid-cols-2">
+          <label className="text-sm">
+            Nom complet
+            <input className="mt-1 w-full border p-2 rounded" value={fullName} onChange={(e)=>setFullName(e.target.value)} />
+          </label>
+          <label className="text-sm">
+            Tarif horaire (XAF)
+            <input className="mt-1 w-full border p-2 rounded" type="number" min="0" value={rate} onChange={(e)=>setRate(e.target.value === '' ? '' : Number(e.target.value))} />
+          </label>
+          <label className="text-sm md:col-span-2">
+            Bio
+            <textarea className="mt-1 w-full border p-2 rounded" rows={3} value={bio} onChange={(e)=>setBio(e.target.value)} />
+          </label>
+          <div className="text-sm">
+            Niveaux
+            <div className="mt-1 flex gap-3 items-center">
+              <label><input type="checkbox" checked={levelChecked('college')} onChange={()=>toggleLevel('college')} /> Collège</label>
+              <label><input type="checkbox" checked={levelChecked('lycee')} onChange={()=>toggleLevel('lycee')} /> Lycée</label>
+            </div>
+          </div>
+          <label className="text-sm">
+            Avatar
+            <input className="mt-1 w-full" type="file" accept="image/*" onChange={(e)=>setAvatarFile(e.target.files?.[0] || null)} />
+          </label>
+          <div className="text-sm">
+            Matières
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {subjects.map(s => (
+                <label key={s.id} className="flex items-center gap-2">
+                  <input type="checkbox" checked={selectedSubjects.includes(s.id)} onChange={()=>setSelectedSubjects(toggleArray(selectedSubjects, s.id))} /> {s.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="text-sm">
+            Quartiers
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {neighborhoods.map(n => (
+                <label key={n.id} className="flex items-center gap-2">
+                  <input type="checkbox" checked={selectedNeighborhoods.includes(n.id)} onChange={()=>setSelectedNeighborhoods(toggleArray(selectedNeighborhoods, n.id))} /> {n.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <button className="px-3 py-2 border rounded" disabled={saving} onClick={saveProfile}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+          </div>
+        </div>
+      </div>
 
       <div className="border rounded">
         <div className="p-3 font-semibold border-b">Mes disponibilités</div>
