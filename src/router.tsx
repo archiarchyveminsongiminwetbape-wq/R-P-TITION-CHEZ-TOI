@@ -8,6 +8,7 @@ import Register from './pages/Register'
 import DashboardParent from './pages/DashboardParent'
 import DashboardTeacher from './pages/DashboardTeacher'
 import { ProtectedRoute } from './routes/ProtectedRoute'
+import Messages from './pages/Messages'
 
 const router = createBrowserRouter([
   {
@@ -32,6 +33,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute role="teacher">
             <DashboardTeacher />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'messages/:bookingId',
+        element: (
+          <ProtectedRoute>
+            <Messages />
           </ProtectedRoute>
         ),
       },
