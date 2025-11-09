@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Link, useNavigate } from 'react-router-dom'
+import { useToast } from '../providers/ToastProvider'
+import { useTranslation } from 'react-i18next'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -8,6 +10,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { toast } = useToast()
+  const { t } = useTranslation()
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -17,6 +21,7 @@ export default function Login() {
     if (error) {
       setLoading(false)
       setError(error.message)
+      toast({ variant: 'error', title: t('toast.error'), description: error.message })
       return
     }
     // get role and redirect
@@ -26,11 +31,13 @@ export default function Login() {
       const { data: prof } = await supabase.from('profiles').select('role').eq('id', uid).single()
       const role = prof?.role as 'parent' | 'teacher' | 'admin' | undefined
       setLoading(false)
+      toast({ variant: 'success', title: t('toast.login_ok') })
       if (role === 'teacher') navigate('/teacher')
       else if (role === 'parent') navigate('/parent')
       else navigate('/')
     } else {
       setLoading(false)
+      toast({ variant: 'success', title: t('toast.login_ok') })
       navigate('/')
     }
   }

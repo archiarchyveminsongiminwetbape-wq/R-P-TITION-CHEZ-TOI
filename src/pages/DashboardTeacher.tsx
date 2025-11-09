@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../providers/AuthProvider'
+import { useToast } from '../providers/ToastProvider'
+import { useTranslation } from 'react-i18next'
 
 type BookingRow = {
   id: string
@@ -12,6 +14,8 @@ type BookingRow = {
 }
 
 export default function DashboardTeacher() {
+  const { t } = useTranslation()
+  const { toast } = useToast()
   const { session } = useAuth()
   const [rows, setRows] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -132,8 +136,11 @@ export default function DashboardTeacher() {
       if (selectedNeighborhoods.length)
         await supabase.from('teacher_neighborhoods').insert(selectedNeighborhoods.map((nid) => ({ teacher_id: session.user.id, neighborhood_id: nid })))
       setNotice('Profil enregistré')
+      toast({ variant: 'success', title: t('toast.saved') })
     } catch (e: any) {
-      setNotice(e.message || 'Erreur lors de la sauvegarde')
+      const msg = e.message || 'Erreur lors de la sauvegarde'
+      setNotice(msg)
+      toast({ variant: 'error', title: t('toast.error'), description: msg })
     } finally {
       setSaving(false)
     }

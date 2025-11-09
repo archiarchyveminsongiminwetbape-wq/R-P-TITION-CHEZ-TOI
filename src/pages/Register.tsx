@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Link, useNavigate } from 'react-router-dom'
+import { useToast } from '../providers/ToastProvider'
+import { useTranslation } from 'react-i18next'
 
 export default function Register() {
   const [email, setEmail] = useState('')
@@ -10,6 +12,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { toast } = useToast()
+  const { t } = useTranslation()
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -23,6 +27,7 @@ export default function Register() {
     if (error) {
       setLoading(false)
       setError(error.message)
+      toast({ variant: 'error', title: t('toast.error'), description: error.message })
       return
     }
     // après signup, le trigger (si ajouté) créera un profil parent; on met à jour le rôle si teacher
@@ -34,6 +39,7 @@ export default function Register() {
     }
     // redirect by role
     setLoading(false)
+    toast({ variant: 'success', title: t('toast.register_ok') })
     if (role === 'teacher') navigate('/teacher')
     else navigate('/parent')
   }

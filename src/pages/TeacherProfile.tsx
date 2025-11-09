@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../providers/AuthProvider'
+import { useToast } from '../providers/ToastProvider'
+import { useTranslation } from 'react-i18next'
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null }
 type Teacher = { user_id: string; bio: string | null; hourly_rate: number | null; levels: string[] | null }
@@ -10,6 +12,8 @@ export default function TeacherProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { session } = useAuth()
+  const { toast } = useToast()
+  const { t } = useTranslation()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [subjects, setSubjects] = useState<string[]>([])
@@ -78,16 +82,19 @@ export default function TeacherProfile() {
     setError(null)
     if (!session?.user || !id) {
       setError('Veuillez vous connecter comme parent pour réserver.')
+      toast({ variant: 'error', title: t('toast.error'), description: 'Veuillez vous connecter comme parent pour réserver.' })
       return
     }
     if (!startsAt || !endsAt) {
       setError('Veuillez renseigner les dates de début et de fin.')
+      toast({ variant: 'error', title: t('toast.error'), description: 'Veuillez renseigner les dates de début et de fin.' })
       return
     }
     const starts = new Date(startsAt)
     const ends = new Date(endsAt)
     if (!(starts instanceof Date) || !(ends instanceof Date) || isNaN(starts.getTime()) || isNaN(ends.getTime()) || ends <= starts) {
       setError('Plage horaire invalide.')
+      toast({ variant: 'error', title: t('toast.error'), description: 'Plage horaire invalide.' })
       return
     }
     // Validate against availabilities of the teacher (same weekday, within a range)
@@ -102,6 +109,7 @@ export default function TeacherProfile() {
     const fits = availabilities.some((a) => a.weekday === weekday && a.start_time <= sHM && a.end_time >= eHM)
     if (!fits) {
       setError("Le créneau demandé n'est pas dans les disponibilités du professeur.")
+      toast({ variant: 'error', title: t('toast.error'), description: "Le créneau demandé n'est pas dans les disponibilités du professeur." })
       return
     }
     // Overlap check: any booking for this teacher with status pending/confirmed where
@@ -116,10 +124,12 @@ export default function TeacherProfile() {
 
     if (ovErr) {
       setError(ovErr.message)
+      toast({ variant: 'error', title: t('toast.error'), description: ovErr.message })
       return
     }
     if ((overlaps?.length || 0) > 0) {
       setError('Ce créneau chevauche une autre réservation.')
+      toast({ variant: 'error', title: t('toast.error'), description: 'Ce créneau chevauche une autre réservation.' })
       return
     }
 
@@ -137,10 +147,11 @@ export default function TeacherProfile() {
       .select('id')
       .single()
     if (error) {
-      setError(error.message)
-      return
+      toast({ variant: 'error', title: t('toast.error'), description: error.message })
+    } else if (data && data.id) {
+      toast({ variant: 'success', title: t('toast.booking_ok') })
+      navigate(`/messages/${data.id}`)
     }
-    navigate(`/messages/${data!.id}`)
   }
 
   return (
