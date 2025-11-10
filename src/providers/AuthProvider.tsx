@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase, hasSupabaseConfig } from '../lib/supabase'
 
 export type UserRole = 'parent' | 'teacher' | 'admin' | null
 
@@ -21,12 +21,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true
 
     async function load() {
-      const { data } = await supabase.auth.getSession()
+      if (!hasSupabaseConfig) {
+        if (!mounted) return
+        setSession(null)
+        setRole(null)
+        setLoading(false)
+        return
+      }
+
+      const { data } = await supabase!.auth.getSession()
       if (!mounted) return
       setSession(data.session)
 
       if (data.session?.user) {
-        const { data: prof } = await supabase
+        const { data: prof } = await supabase!
           .from('profiles')
           .select('role')
           .eq('id', data.session.user.id)
@@ -39,19 +47,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     load()
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s)
-      if (!s?.user) {
-        setRole(null)
-      } else {
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', s.user.id)
-          .single()
-          .then(({ data: p }) => setRole((p?.role as UserRole) ?? null))
-      }
-    })
+    const sub = hasSupabaseConfig
+      ? supabase!.auth
+          .onAuthStateChange((_e, s) => {
+            setSession(s)
+            if (!s?.user) {
+              setRole(null)
+            } else {
+              supabase!
+                .from('profiles')
+                .select('role')
+                .eq('id', s.user.id)
+                .single()
+                .then(({ data: p }) => setRole((p?.role as UserRole) ?? null))
+            }
+          })
+          .data
+      : { subscription: { unsubscribe: () => {} } }
 
     return () => {
       mounted = false

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, hasSupabaseConfig } from '../lib/supabase'
 import { Link, useNavigate } from 'react-router-dom'
 import { useToast } from '../providers/ToastProvider'
 import { useTranslation } from 'react-i18next'
@@ -19,7 +19,15 @@ export default function Register() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const { error } = await supabase.auth.signUp({
+    if (!hasSupabaseConfig) {
+      const msg = 'Configuration Supabase manquante. Contactez l’administrateur.'
+      setLoading(false)
+      setError(msg)
+      toast({ variant: 'error', title: t('toast.error'), description: msg })
+      return
+    }
+
+    const { error } = await supabase!.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName } },
@@ -30,16 +38,21 @@ export default function Register() {
       toast({ variant: 'error', title: t('toast.error'), description: error.message })
       return
     }
-    // après signup, le trigger (si ajouté) créera un profil parent; on met à jour le rôle si teacher
-    const { data: sess } = await supabase.auth.getSession()
+    // après signup, le trigger (si ajouté) créera un profil parent; on met à jour le rôle si teacher si session présente
+    const { data: sess } = await supabase!.auth.getSession()
     const userId = sess.session?.user.id
     if (userId && role === 'teacher') {
-      await supabase.from('profiles').update({ role: 'teacher', full_name: fullName }).eq('id', userId)
-      await supabase.from('teacher_profiles').insert({ user_id: userId }).select().single()
+      await supabase!.from('profiles').update({ role: 'teacher', full_name: fullName }).eq('id', userId)
+      await supabase!.from('teacher_profiles').insert({ user_id: userId }).select().single()
     }
     // redirect by role
     setLoading(false)
     toast({ variant: 'success', title: t('toast.register_ok') })
+    // Si pas de session (email confirmation), on dirige vers la page de connexion
+    if (!userId) {
+      navigate('/login')
+      return
+    }
     if (role === 'teacher') navigate('/teacher')
     else navigate('/parent')
   }
@@ -56,7 +69,7 @@ export default function Register() {
           <option value="teacher">Professeur</option>
         </select>
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button className="px-4 py-2 border rounded" disabled={loading}>
+        <button className="px-4 py-2 border rounded bg-black text-white disabled:opacity-60" disabled={loading}>
           {loading ? '...' : "S'inscrire"}
         </button>
       </form>

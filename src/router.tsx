@@ -9,11 +9,13 @@ import DashboardParent from './pages/DashboardParent'
 import DashboardTeacher from './pages/DashboardTeacher'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import Messages from './pages/Messages'
+import ErrorPage from './pages/ErrorPage'
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <Home /> },
       { path: 'search', element: <Search /> },
