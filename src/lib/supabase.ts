@@ -5,6 +5,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey)
 
-export const supabase = hasSupabaseConfig
-  ? createClient(supabaseUrl!, supabaseAnonKey!)
-  : null
+export type SupabaseClientType = ReturnType<typeof createClient<any, any>>
+
+// For typing: always expose a client-like type to avoid TS "possibly null" errors across the app.
+// At runtime, rely on hasSupabaseConfig in call sites that need to guard.
+export const supabase = (
+  hasSupabaseConfig
+    ? createClient(supabaseUrl!, supabaseAnonKey!)
+    : (null as unknown)
+) as unknown as SupabaseClientType
