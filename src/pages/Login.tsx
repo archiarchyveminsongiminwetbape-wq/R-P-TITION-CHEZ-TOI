@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, hasSupabaseConfig } from '../lib/supabase'
 import { Link, useNavigate } from 'react-router-dom'
 import { useToast } from '../providers/ToastProvider'
 import { useTranslation } from 'react-i18next'
@@ -17,28 +17,35 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setLoading(false)
-      setError(error.message)
-      toast({ variant: 'error', title: t('toast.error'), description: error.message })
-      return
-    }
-    // get role and redirect
-    const { data: sess } = await supabase.auth.getSession()
-    const uid = sess.session?.user.id
-    if (uid) {
-      const { data: prof } = await supabase.from('profiles').select('role').eq('id', uid).single()
-      const role = prof?.role as 'parent' | 'teacher' | 'admin' | undefined
-      setLoading(false)
+    try {
+      if (!hasSupabaseConfig) throw new Error('Configuration Supabase manquante.')
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        const msg = error.message?.toLowerCase().includes('email not confirmed')
+          ? 'Email non confirmé. Vérifiez votre boîte mail.'
+          : error.message
+        throw new Error(msg)
+      }
+      // get role and redirect
+      const { data: sess } = await supabase.auth.getSession()
+      const uid = sess.session?.user.id
+      let role: 'parent' | 'teacher' | 'admin' | undefined
+      if (uid) {
+        try {
+          const { data: prof } = await supabase.from('profiles').select('role').eq('id', uid).single()
+          role = prof?.role as any
+        } catch {}
+      }
       toast({ variant: 'success', title: t('toast.login_ok') })
       if (role === 'teacher') navigate('/teacher')
       else if (role === 'parent') navigate('/parent')
       else navigate('/')
-    } else {
+    } catch (err: any) {
+      const msg = err?.message || 'Erreur de connexion'
+      setError(msg)
+      toast({ variant: 'error', title: t('toast.error'), description: msg })
+    } finally {
       setLoading(false)
-      toast({ variant: 'success', title: t('toast.login_ok') })
-      navigate('/')
     }
   }
 
@@ -49,7 +56,7 @@ export default function Login() {
         <input className="w-full border p-2 rounded" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input className="w-full border p-2 rounded" type="password" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} required />
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button className="px-4 py-2 border rounded" disabled={loading}>
+        <button className="px-4 py-2 border rounded bg-black text-white disabled:opacity-60" disabled={loading}>
           {loading ? '...' : 'Se connecter'}
         </button>
       </form>

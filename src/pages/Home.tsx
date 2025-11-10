@@ -22,7 +22,7 @@ export default function Home() {
                 {t('home.cta_find_teacher')}
               </a>
               <a
-                href="/register"
+                href="/register?role=teacher"
                 className="inline-flex items-center justify-center rounded-md border px-5 py-3 text-slate-900 hover:bg-slate-50"
               >
                 {t('home.cta_register_teacher')}

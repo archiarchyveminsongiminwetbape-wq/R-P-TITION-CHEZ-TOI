@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { supabase, hasSupabaseConfig } from '../lib/supabase'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useToast } from '../providers/ToastProvider'
 import { useTranslation } from 'react-i18next'
 
 export default function Register() {
+  const [search] = useSearchParams()
+  const initialRole = (search.get('role') === 'teacher' ? 'teacher' : 'parent') as 'parent' | 'teacher'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [role, setRole] = useState<'parent' | 'teacher'>('parent')
+  const [role, setRole] = useState<'parent' | 'teacher'>(initialRole)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
