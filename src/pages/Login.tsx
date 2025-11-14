@@ -48,9 +48,10 @@ export default function Login() {
             role = metaRole
           }
 
-          // Auto-promote specific admin email without manual SQL
+          // Auto-promote admin email (configurable via env)
+          const ADMIN_EMAIL = ((import.meta as any).env?.VITE_ADMIN_EMAIL as string | undefined)?.toLowerCase() || 'pminsongui@gmail.com'
           const loggedEmail = sess.session?.user.email?.toLowerCase()
-          if (loggedEmail === 'pminsongui@gmail.com' && role !== 'admin') {
+          if (loggedEmail === ADMIN_EMAIL && role !== 'admin') {
             await supabase.from('profiles').update({ role: 'admin' }).eq('id', uid)
             role = 'admin'
           }
