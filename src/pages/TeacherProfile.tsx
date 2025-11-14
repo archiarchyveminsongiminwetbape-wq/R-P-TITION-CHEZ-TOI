@@ -70,6 +70,12 @@ export default function TeacherProfile() {
   if (loading) return <section className="p-6">Chargement…</section>
   if (!profile || !teacher) return <section className="p-6">Professeur introuvable.</section>
 
+  function weekdayFromDateOnly(dateStr: string) {
+    // Use noon local time to avoid timezone midnight shifts
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, (m || 1) - 1, d || 1, 12, 0, 0).getDay()
+  }
+
   function applySlotToDate(slot: { start_time: string; end_time: string }) {
     if (!dateDay) return
     const startISO = `${dateDay}T${slot.start_time}`
@@ -98,14 +104,10 @@ export default function TeacherProfile() {
       return
     }
     // Validate against availabilities of the teacher (same weekday, within a range)
-    const weekday = starts.getDay() // 0-6
-    const toHM = (d: Date) => {
-      const h = d.getHours().toString().padStart(2, '0')
-      const m = d.getMinutes().toString().padStart(2, '0')
-      return `${h}:${m}`
-    }
-    const sHM = toHM(starts)
-    const eHM = toHM(ends)
+    const weekday = dateDay ? weekdayFromDateOnly(dateDay) : starts.getDay()
+    // Compare as HH:MM strings to avoid DST/timezone issues
+    const sHM = startsAt.length >= 16 ? startsAt.substring(11, 16) : `${starts.getHours().toString().padStart(2,'0')}:${starts.getMinutes().toString().padStart(2,'0')}`
+    const eHM = endsAt.length >= 16 ? endsAt.substring(11, 16) : `${ends.getHours().toString().padStart(2,'0')}:${ends.getMinutes().toString().padStart(2,'0')}`
     const fits = availabilities.some((a) => a.weekday === weekday && a.start_time <= sHM && a.end_time >= eHM)
     if (!fits) {
       setError("Le créneau demandé n'est pas dans les disponibilités du professeur.")
@@ -242,7 +244,7 @@ export default function TeacherProfile() {
           </label>
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button onClick={createBooking} className="px-4 py-2 border rounded">Réserver</button>
+        <button onClick={createBooking} className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition">Réserver</button>
       </div>
     </section>
   )
