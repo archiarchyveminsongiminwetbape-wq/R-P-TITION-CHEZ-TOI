@@ -10,6 +10,7 @@ import DashboardTeacher from './pages/DashboardTeacher'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import Messages from './pages/Messages'
 import ErrorPage from './pages/ErrorPage'
+import Admin from './pages/Admin'
 
 const router = createBrowserRouter([
   {
@@ -22,6 +23,14 @@ const router = createBrowserRouter([
       { path: 'teacher/:id', element: <TeacherProfile /> },
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
+      {
+        path: 'admin',
+        element: (
+          <ProtectedRoute role="admin">
+            <Admin />
+          </ProtectedRoute>
+        ),
+      },
       {
         path: 'parent',
         element: (

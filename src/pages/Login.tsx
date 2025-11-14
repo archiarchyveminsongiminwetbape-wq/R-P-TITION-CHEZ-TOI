@@ -41,11 +41,18 @@ export default function Login() {
             role = (prof?.role as any) || 'parent'
           }
 
-          // If auth metadata indicates teacher but profile isn't yet, upgrade profile role
+          // If auth metadata indicates role (teacher/admin) but profile isn't yet, upgrade profile role
           const metaRole = (sess.session?.user.user_metadata as any)?.role
-          if (metaRole === 'teacher' && role !== 'teacher') {
-            await supabase.from('profiles').update({ role: 'teacher' }).eq('id', uid)
-            role = 'teacher'
+          if ((metaRole === 'teacher' || metaRole === 'admin') && role !== metaRole) {
+            await supabase.from('profiles').update({ role: metaRole }).eq('id', uid)
+            role = metaRole
+          }
+
+          // Auto-promote specific admin email without manual SQL
+          const loggedEmail = sess.session?.user.email?.toLowerCase()
+          if (loggedEmail === 'pminsongui@gmail.com' && role !== 'admin') {
+            await supabase.from('profiles').update({ role: 'admin' }).eq('id', uid)
+            role = 'admin'
           }
 
           // If teacher, ensure teacher_profiles row exists
@@ -62,7 +69,8 @@ export default function Login() {
         } catch {}
       }
       toast({ variant: 'success', title: t('toast.login_ok') })
-      if (role === 'teacher') navigate('/teacher')
+      if (role === 'admin') navigate('/admin')
+      else if (role === 'teacher') navigate('/teacher')
       else if (role === 'parent') navigate('/parent')
       else navigate('/')
     } catch (err: any) {
