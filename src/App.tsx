@@ -48,11 +48,11 @@ function App() {
                 )}
               </svg>
             </button>
-            <nav className="hidden md:flex items-center gap-5 text-sm text-slate-700 ml-auto">
-              <Link to="/" className="hover:text-black">Accueil</Link>
-              <Link to="/search" className="hover:text-black">Recherche</Link>
-              <Link to="/login" className="hover:text-black">Connexion</Link>
-              <Link to="/register" className="hover:text-black">Inscription</Link>
+            <nav className="hidden md:flex items-center gap-4 text-sm text-slate-700 ml-auto">
+              <Link to="/" className="px-2 py-1 rounded hover:text-black hover:bg-slate-50 transition">Accueil</Link>
+              <Link to="/search" className="px-2 py-1 rounded hover:text-black hover:bg-slate-50 transition">Recherche</Link>
+              <Link to="/login" className="px-3 py-1.5 rounded border border-slate-300 text-slate-700 hover:bg-slate-50 transition">Connexion</Link>
+              <Link to="/register?role=teacher" className="px-3 py-1.5 rounded bg-black text-white hover:bg-slate-900 transition shadow-sm">Inscription</Link>
             </nav>
             <div className="hidden md:block">
               <select
