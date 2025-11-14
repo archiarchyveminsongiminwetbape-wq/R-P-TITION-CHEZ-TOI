@@ -32,8 +32,33 @@ export default function Login() {
       let role: 'parent' | 'teacher' | 'admin' | undefined
       if (uid) {
         try {
-          const { data: prof } = await supabase.from('profiles').select('role').eq('id', uid).single()
-          role = prof?.role as any
+          // Ensure profile exists (fallback if DB trigger failed)
+          const { data: prof, error: profErr } = await supabase.from('profiles').select('role').eq('id', uid).single()
+          if (profErr && profErr.code === 'PGRST116') {
+            await supabase.from('profiles').insert({ id: uid, role: 'parent' })
+            role = 'parent'
+          } else {
+            role = (prof?.role as any) || 'parent'
+          }
+
+          // If auth metadata indicates teacher but profile isn't yet, upgrade profile role
+          const metaRole = (sess.session?.user.user_metadata as any)?.role
+          if (metaRole === 'teacher' && role !== 'teacher') {
+            await supabase.from('profiles').update({ role: 'teacher' }).eq('id', uid)
+            role = 'teacher'
+          }
+
+          // If teacher, ensure teacher_profiles row exists
+          if (role === 'teacher') {
+            const { error: tErr } = await supabase
+              .from('teacher_profiles')
+              .select('user_id')
+              .eq('user_id', uid)
+              .single()
+            if (tErr && tErr.code === 'PGRST116') {
+              await supabase.from('teacher_profiles').insert({ user_id: uid })
+            }
+          }
         } catch {}
       }
       toast({ variant: 'success', title: t('toast.login_ok') })
@@ -60,6 +85,36 @@ export default function Login() {
           {loading ? '...' : 'Se connecter'}
         </button>
       </form>
+      <div className="mt-3 flex items-center gap-3 text-sm">
+        <button
+          className="underline"
+          onClick={async () => {
+            try {
+              if (!email) throw new Error('Saisissez votre email')
+              if (!hasSupabaseConfig) throw new Error('Configuration Supabase manquante.')
+              await supabase.auth.resend({ type: 'signup', email })
+              toast({ variant: 'success', title: 'Email de confirmation renvoyé' })
+            } catch (e: any) {
+              toast({ variant: 'error', title: t('toast.error'), description: e?.message || 'Erreur' })
+            }
+          }}
+        >Renvoyer l'email de confirmation</button>
+        <span className="opacity-50">|</span>
+        <button
+          className="underline"
+          onClick={async () => {
+            try {
+              if (!email) throw new Error('Saisissez votre email')
+              if (!hasSupabaseConfig) throw new Error('Configuration Supabase manquante.')
+              const redirectTo = `${window.location.origin}/reset-password`
+              await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+              toast({ variant: 'success', title: 'Email de réinitialisation envoyé' })
+            } catch (e: any) {
+              toast({ variant: 'error', title: t('toast.error'), description: e?.message || 'Erreur' })
+            }
+          }}
+        >Mot de passe oublié</button>
+      </div>
       <p className="mt-3 text-sm">
         Pas de compte ? <Link to="/register" className="underline">Créer un compte</Link>
       </p>

@@ -32,7 +32,7 @@ export default function Register() {
     const { error } = await supabase!.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, role } },
     })
     if (error) {
       setLoading(false)
