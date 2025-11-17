@@ -71,7 +71,7 @@ export default function Register() {
           <option value="teacher">Professeur</option>
         </select>
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button className="px-4 py-2 border rounded bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60" disabled={loading}>
+        <button className="w-full px-4 py-3 border rounded bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60 text-base" disabled={loading}>
           {loading ? '...' : "S'inscrire"}
         </button>
       </form>

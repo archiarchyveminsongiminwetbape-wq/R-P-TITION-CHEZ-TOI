@@ -219,10 +219,27 @@ export default function DashboardTeacher() {
           </select>
           <input className="border p-2 rounded" type="time" value={startTime} onChange={(e)=>setStartTime(e.target.value)} />
           <input className="border p-2 rounded" type="time" value={endTime} onChange={(e)=>setEndTime(e.target.value)} />
-          <button className="border rounded px-3" onClick={async ()=>{
-            if (!session?.user) return
-            await supabase.from('availabilities').insert({ teacher_id: session.user.id, weekday, start_time: startTime, end_time: endTime })
-          }}>Ajouter</button>
+          <button
+            className="border rounded px-3"
+            onClick={async () => {
+              if (!session?.user) return
+              const { data, error } = await supabase
+                .from('availabilities')
+                .insert({ teacher_id: session.user.id, weekday, start_time: startTime, end_time: endTime })
+                .select('id,weekday,start_time,end_time')
+                .single()
+              if (error || !data) return
+              setAvails((prev) =>
+                [...prev, data as any].sort((a, b) =>
+                  a.weekday === b.weekday
+                    ? a.start_time.localeCompare(b.start_time)
+                    : a.weekday - b.weekday
+                )
+              )
+            }}
+          >
+            Ajouter
+          </button>
         </div>
         <ul className="divide-y">
           {avails.map(a=> (

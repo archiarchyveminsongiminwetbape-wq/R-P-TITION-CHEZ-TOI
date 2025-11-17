@@ -14,16 +14,16 @@ export default function Home() {
             <p className="mt-4 text-slate-600 text-lg md:text-xl">
               {t('home.hero_subtitle')}
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
               <a
                 href="/search"
-                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-5 py-3 text-base sm:text-sm text-white shadow hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 w-full sm:w-auto"
               >
                 {t('home.cta_find_teacher')}
               </a>
               <a
                 href="/register?role=teacher"
-                className="inline-flex items-center justify-center rounded-md border border-emerald-200 px-5 py-3 text-emerald-800 hover:bg-emerald-50"
+                className="inline-flex items-center justify-center rounded-md border border-emerald-200 px-5 py-3 text-base sm:text-sm text-emerald-800 hover:bg-emerald-50 w-full sm:w-auto"
               >
                 {t('home.cta_register_teacher')}
               </a>

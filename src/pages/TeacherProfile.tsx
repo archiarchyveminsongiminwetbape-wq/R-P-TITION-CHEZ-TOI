@@ -266,7 +266,7 @@ export default function TeacherProfile() {
           </label>
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button onClick={createBooking} className="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition">Réserver</button>
+        <button onClick={createBooking} className="w-full sm:w-auto px-4 py-3 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition text-base">Réserver</button>
       </div>
     </section>
   )
