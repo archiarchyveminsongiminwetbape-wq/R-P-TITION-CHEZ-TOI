@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <main>
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-50 via-white to-white" />
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-50 via-white to-white" />
         <div className="relative max-w-6xl mx-auto px-6 py-16 md:py-24">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">
@@ -17,13 +17,13 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="/search"
-                className="inline-flex items-center justify-center rounded-md bg-black px-5 py-3 text-white shadow hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-black/20"
+                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
               >
                 {t('home.cta_find_teacher')}
               </a>
               <a
                 href="/register?role=teacher"
-                className="inline-flex items-center justify-center rounded-md border px-5 py-3 text-slate-900 hover:bg-slate-50"
+                className="inline-flex items-center justify-center rounded-md border border-emerald-200 px-5 py-3 text-emerald-800 hover:bg-emerald-50"
               >
                 {t('home.cta_register_teacher')}
               </a>
