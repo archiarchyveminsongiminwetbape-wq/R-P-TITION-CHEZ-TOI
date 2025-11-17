@@ -2,9 +2,11 @@ import './App.css'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Outlet, Link } from 'react-router-dom'
+import { useAuth } from './providers/AuthProvider'
 
 function App() {
   const { t, i18n } = useTranslation()
+  const { session, role } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -49,10 +51,27 @@ function App() {
               </svg>
             </button>
             <nav className="hidden md:flex items-center gap-4 text-sm text-slate-700 ml-auto">
-              <Link to="/" className="px-2 py-1 rounded hover:text-black hover:bg-slate-50 transition">Accueil</Link>
-              <Link to="/search" className="px-2 py-1 rounded hover:text-black hover:bg-slate-50 transition">Recherche</Link>
-              <Link to="/login" className="px-3 py-1.5 rounded border border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition">Connexion</Link>
-              <Link to="/register?role=teacher" className="px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm">Inscription</Link>
+              <Link to="/" className="px-2 py-1 rounded hover:text-emerald-800 hover:bg-emerald-50 transition">Accueil</Link>
+              <Link to="/search" className="px-2 py-1 rounded hover:text-emerald-800 hover:bg-emerald-50 transition">Recherche</Link>
+              {!session && (
+                <>
+                  <Link to="/login" className="px-3 py-1.5 rounded border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition">Connexion</Link>
+                  <Link to="/register?role=teacher" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">Inscription</Link>
+                </>
+              )}
+              {session && (
+                <>
+                  {role === 'parent' && (
+                    <Link to="/parent" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">Espace parent</Link>
+                  )}
+                  {role === 'teacher' && (
+                    <Link to="/teacher" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">Espace prof</Link>
+                  )}
+                  {role === 'admin' && (
+                    <Link to="/admin" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">Espace admin</Link>
+                  )}
+                </>
+              )}
             </nav>
             <div className="hidden md:block">
               <select

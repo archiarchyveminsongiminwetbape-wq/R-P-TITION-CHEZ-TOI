@@ -28,6 +28,7 @@ export default function TeacherProfile() {
   const [neighborhoodId, setNeighborhoodId] = useState<number | ''>('')
   const [error, setError] = useState<string | null>(null)
   const [availabilities, setAvailabilities] = useState<Array<{ weekday: number; start_time: string; end_time: string }>>([])
+  const [bookedSlots, setBookedSlots] = useState<Array<{ starts_at: string; ends_at: string }>>([])
 
   useEffect(() => {
     if (!id) return
@@ -66,6 +67,21 @@ export default function TeacherProfile() {
     }
     load()
   }, [id])
+
+  useEffect(() => {
+    if (!id || !dateDay) return
+    async function loadBooked() {
+      const { data } = await supabase
+        .from('bookings')
+        .select('starts_at,ends_at')
+        .eq('teacher_id', id)
+        .in('status', ['pending','confirmed'])
+        .gte('starts_at', `${dateDay}T00:00:00`)
+        .lt('starts_at', `${dateDay}T23:59:59`)
+      setBookedSlots((data as any) ?? [])
+    }
+    loadBooked()
+  }, [id, dateDay])
 
   if (loading) return <section className="p-6">Chargement…</section>
   if (!profile || !teacher) return <section className="p-6">Professeur introuvable.</section>
@@ -220,7 +236,13 @@ export default function TeacherProfile() {
                   .map((a, i)=>({a,i}))
                   .filter(({a})=>{
                     const wd = new Date(dateDay + 'T00:00:00').getDay();
-                    return a.weekday === wd
+                    if (a.weekday !== wd) return false
+                    // hide slots that overlap existing bookings for this date
+                    return !bookedSlots.some(b => {
+                      const bs = b.starts_at.substring(11,16)
+                      const be = b.ends_at.substring(11,16)
+                      return !(be <= a.start_time || bs >= a.end_time)
+                    })
                   })
                   .map(({a,i})=> (
                     <option key={i} value={i}>{['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][a.weekday]} {a.start_time} - {a.end_time}</option>
@@ -244,7 +266,7 @@ export default function TeacherProfile() {
           </label>
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button onClick={createBooking} className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition">Réserver</button>
+        <button onClick={createBooking} className="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition">Réserver</button>
       </div>
     </section>
   )
