@@ -119,17 +119,8 @@ export default function TeacherProfile() {
       toast({ variant: 'error', title: t('toast.error'), description: 'Plage horaire invalide.' })
       return
     }
-    // Validate against availabilities of the teacher (same weekday, within a range)
-    const weekday = dateDay ? weekdayFromDateOnly(dateDay) : starts.getDay()
-    // Compare as HH:MM strings to avoid DST/timezone issues
-    const sHM = startsAt.length >= 16 ? startsAt.substring(11, 16) : `${starts.getHours().toString().padStart(2,'0')}:${starts.getMinutes().toString().padStart(2,'0')}`
-    const eHM = endsAt.length >= 16 ? endsAt.substring(11, 16) : `${ends.getHours().toString().padStart(2,'0')}:${ends.getMinutes().toString().padStart(2,'0')}`
-    const fits = availabilities.some((a) => a.weekday === weekday && a.start_time <= sHM && a.end_time >= eHM)
-    if (!fits) {
-      setError("Le créneau demandé n'est pas dans les disponibilités du professeur.")
-      toast({ variant: 'error', title: t('toast.error'), description: "Le créneau demandé n'est pas dans les disponibilités du professeur." })
-      return
-    }
+    // Optionally, we could validate against availabilities, but we relax this check
+    // to avoid blocking parents when a slot is otherwise acceptable and not overlapping.
     // Overlap check: any booking for this teacher with status pending/confirmed where
     // existing.starts_at < requested.ends AND existing.ends_at > requested.starts
     const { data: overlaps, error: ovErr } = await supabase

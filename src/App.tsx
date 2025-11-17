@@ -90,10 +90,10 @@ function App() {
           <div id="mobile-menu" className="md:hidden border-b bg-white">
             <div className="mx-auto max-w-6xl px-4 py-3">
               <div className="flex flex-col gap-3 text-sm text-slate-700">
-                <Link to="/" onClick={() => setMobileOpen(false)} className="hover:text-black">Accueil</Link>
-                <Link to="/search" onClick={() => setMobileOpen(false)} className="hover:text-black">Recherche</Link>
-                <Link to="/login" onClick={() => setMobileOpen(false)} className="hover:text-black">Connexion</Link>
-                <Link to="/register" onClick={() => setMobileOpen(false)} className="hover:text-black">Inscription</Link>
+                <Link to="/" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">Accueil</Link>
+                <Link to="/search" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">Recherche</Link>
+                <Link to="/login" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">Connexion</Link>
+                <Link to="/register" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">Inscription</Link>
                 <div className="pt-2">
                   <select
                     aria-label="language"
