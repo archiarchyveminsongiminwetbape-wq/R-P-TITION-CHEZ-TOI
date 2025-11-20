@@ -85,6 +85,13 @@ create table if not exists public.bookings (
   constraint chk_booking_time check (ends_at > starts_at)
 );
 
+-- Link bookings to multiple subjects (many-to-many)
+create table if not exists public.booking_subjects (
+  booking_id uuid references public.bookings(id) on delete cascade,
+  subject_id int references public.subjects(id) on delete restrict,
+  primary key (booking_id, subject_id)
+);
+
 create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid references public.bookings(id) on delete cascade,
@@ -136,6 +143,7 @@ alter table public.teacher_neighborhoods enable row level security;
 alter table public.children enable row level security;
 alter table public.availabilities enable row level security;
 alter table public.bookings enable row level security;
+alter table public.booking_subjects enable row level security;
 alter table public.messages enable row level security;
 alter table public.reviews enable row level security;
 
@@ -187,6 +195,24 @@ create policy "bookings_parent_update_own" on public.bookings
 create policy "bookings_teacher_update_own" on public.bookings
   for update using (teacher_id = auth.uid());
 
+-- Booking subjects (participants only)
+create policy "booking_subjects_read_participants" on public.booking_subjects
+  for select using (
+    exists (
+      select 1 from public.bookings b
+      where b.id = booking_id
+        and (b.parent_id = auth.uid() or b.teacher_id = auth.uid())
+    )
+  );
+create policy "booking_subjects_insert_parent" on public.booking_subjects
+  for insert with check (
+    exists (
+      select 1 from public.bookings b
+      where b.id = booking_id
+        and b.parent_id = auth.uid()
+    )
+  );
+
 -- Messages (only participants of the booking)
 create policy "messages_read_participants" on public.messages
   for select using (exists (select 1 from public.bookings b where b.id = booking_id and (b.parent_id = auth.uid() or b.teacher_id = auth.uid())));
@@ -214,6 +240,7 @@ create index if not exists idx_teacher_neighborhoods_teacher on public.teacher_n
 create index if not exists idx_teacher_neighborhoods_neighborhood on public.teacher_neighborhoods(neighborhood_id);
 create index if not exists idx_bookings_teacher on public.bookings(teacher_id);
 create index if not exists idx_bookings_parent on public.bookings(parent_id);
+create index if not exists idx_booking_subjects_booking on public.booking_subjects(booking_id);
 
 -- 8) Storage (avatars)
 insert into storage.buckets (id, name, public) values ('avatars','avatars', true)

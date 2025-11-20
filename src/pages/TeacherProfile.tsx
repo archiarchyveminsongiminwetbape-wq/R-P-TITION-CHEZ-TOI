@@ -24,7 +24,7 @@ export default function TeacherProfile() {
   const [dateDay, setDateDay] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [endsAt, setEndsAt] = useState('')
-  const [subjectId, setSubjectId] = useState<number | ''>('')
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([])
   const [neighborhoodId, setNeighborhoodId] = useState<number | ''>('')
   const [error, setError] = useState<string | null>(null)
   const [availabilities, setAvailabilities] = useState<Array<{ weekday: number; start_time: string; end_time: string }>>([])
@@ -100,6 +100,10 @@ export default function TeacherProfile() {
     setEndsAt(endISO)
   }
 
+  const toggleSubject = (id: number) => {
+    setSelectedSubjectIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
   async function createBooking() {
     setError(null)
     if (!session?.user || !id) {
@@ -147,7 +151,7 @@ export default function TeacherProfile() {
       .insert({
         parent_id: session.user.id,
         teacher_id: id,
-        subject_id: subjectId || null,
+        subject_id: selectedSubjectIds[0] || null,
         neighborhood_id: neighborhoodId || null,
         starts_at: starts.toISOString(),
         ends_at: ends.toISOString(),
@@ -158,6 +162,11 @@ export default function TeacherProfile() {
     if (error) {
       toast({ variant: 'error', title: t('toast.error'), description: error.message })
     } else if (data && data.id) {
+      if (selectedSubjectIds.length) {
+        await supabase
+          .from('booking_subjects')
+          .insert(selectedSubjectIds.map((sid) => ({ booking_id: data.id, subject_id: sid })))
+      }
       toast({ variant: 'success', title: t('toast.booking_ok') })
       navigate(`/messages/${data.id}`)
     }
@@ -241,13 +250,21 @@ export default function TeacherProfile() {
               </select>
             </label>
           )}
-          <label className="text-sm">
-            Matière (optionnel)
-            <select className="mt-1 w-full border p-2 rounded" value={subjectId} onChange={(e)=>setSubjectId(e.target.value?Number(e.target.value):'')}>
-              <option value="">—</option>
-              {subjectsList.map(s=> <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </label>
+          <div className="text-sm">
+            Matières (optionnel)
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {subjectsList.map((s) => (
+                <label key={s.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedSubjectIds.includes(s.id)}
+                    onChange={() => toggleSubject(s.id)}
+                  />
+                  {s.name}
+                </label>
+              ))}
+            </div>
+          </div>
           <label className="text-sm">
             Quartier (optionnel)
             <select className="mt-1 w-full border p-2 rounded" value={neighborhoodId} onChange={(e)=>setNeighborhoodId(e.target.value?Number(e.target.value):'')}>
