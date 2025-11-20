@@ -61,22 +61,22 @@ export default function Register() {
 
   return (
     <section className="p-6 max-w-md mx-auto">
-      <h2 className="text-xl font-semibold mb-4">Créer un compte</h2>
+      <h2 className="text-xl font-semibold mb-4">{t('auth.register_title')}</h2>
       <form onSubmit={onSubmit} className="space-y-3">
-        <input className="w-full border p-2 rounded" placeholder="Nom complet" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        <input className="w-full border p-2 rounded" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="w-full border p-2 rounded" type="password" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <input className="w-full border p-2 rounded" placeholder={t('auth.full_name')} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        <input className="w-full border p-2 rounded" type="email" placeholder={t('auth.email')} value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="w-full border p-2 rounded" type="password" placeholder={t('auth.password')} value={password} onChange={(e) => setPassword(e.target.value)} required />
         <select className="w-full border p-2 rounded" value={role} onChange={(e) => setRole(e.target.value as 'parent' | 'teacher')}>
-          <option value="parent">Parent</option>
-          <option value="teacher">Professeur</option>
+          <option value="parent">{t('auth.role_parent')}</option>
+          <option value="teacher">{t('auth.role_teacher')}</option>
         </select>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <button className="w-full px-4 py-3 border rounded bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60 text-base" disabled={loading}>
-          {loading ? '...' : "S'inscrire"}
+          {loading ? '...' : t('auth.register_button')}
         </button>
       </form>
       <p className="mt-3 text-sm">
-        Déjà un compte ? <Link to="/login" className="underline">Se connecter</Link>
+        {t('auth.have_account')}<Link to="/login" className="underline">{t('auth.link_login')}</Link>
       </p>
     </section>
   )

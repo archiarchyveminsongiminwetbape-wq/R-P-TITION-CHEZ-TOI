@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../providers/AuthProvider'
+import { useTranslation } from 'react-i18next'
 
 export default function Messages() {
   const { bookingId } = useParams()
@@ -9,6 +10,7 @@ export default function Messages() {
   const [messages, setMessages] = useState<Array<{ id: string; body: string; created_at: string; sender_id: string }>>([])
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (!bookingId) return
@@ -43,8 +45,8 @@ export default function Messages() {
 
   return (
     <section className="p-6 max-w-2xl mx-auto space-y-4">
-      <h2 className="text-xl font-semibold">Messagerie</h2>
-      {loading && <p>Chargement…</p>}
+      <h2 className="text-xl font-semibold">{t('messages.title')}</h2>
+      {loading && <p>{t('messages.loading')}</p>}
       <div className="border rounded p-3 h-80 overflow-auto bg-white/50">
         {messages.map((m) => (
           <div key={m.id} className={`mb-2 ${m.sender_id === session?.user.id ? 'text-right' : ''}`}>
@@ -54,11 +56,11 @@ export default function Messages() {
             </div>
           </div>
         ))}
-        {!loading && messages.length === 0 && <div className="opacity-70">Aucun message</div>}
+        {!loading && messages.length === 0 && <div className="opacity-70">{t('messages.none')}</div>}
       </div>
       <div className="flex gap-2">
-        <input className="flex-1 border p-2 rounded" value={text} onChange={(e) => setText(e.target.value)} placeholder="Votre message" />
-        <button onClick={send} className="px-4 py-2 border rounded">Envoyer</button>
+        <input className="flex-1 border p-2 rounded" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('messages.placeholder')} />
+        <button onClick={send} className="px-4 py-2 border rounded">{t('messages.send')}</button>
       </div>
     </section>
   )

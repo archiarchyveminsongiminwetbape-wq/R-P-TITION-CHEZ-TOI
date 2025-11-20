@@ -51,24 +51,24 @@ function App() {
               </svg>
             </button>
             <nav className="hidden md:flex items-center gap-4 text-sm text-slate-700 ml-auto">
-              <Link to="/" className="px-2 py-1 rounded hover:text-emerald-800 hover:bg-emerald-50 transition">Accueil</Link>
-              <Link to="/search" className="px-2 py-1 rounded hover:text-emerald-800 hover:bg-emerald-50 transition">Recherche</Link>
+              <Link to="/" className="px-2 py-1 rounded hover:text-emerald-800 hover:bg-emerald-50 transition">{t('nav.home')}</Link>
+              <Link to="/search" className="px-2 py-1 rounded hover:text-emerald-800 hover:bg-emerald-50 transition">{t('nav.search')}</Link>
               {!session && (
                 <>
-                  <Link to="/login" className="px-3 py-1.5 rounded border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition">Connexion</Link>
-                  <Link to="/register?role=teacher" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">Inscription</Link>
+                  <Link to="/login" className="px-3 py-1.5 rounded border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition">{t('nav.login')}</Link>
+                  <Link to="/register?role=teacher" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">{t('nav.register')}</Link>
                 </>
               )}
               {session && (
                 <>
                   {role === 'parent' && (
-                    <Link to="/parent" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">Espace parent</Link>
+                    <Link to="/parent" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">{t('nav.parent_space')}</Link>
                   )}
                   {role === 'teacher' && (
-                    <Link to="/teacher" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">Espace prof</Link>
+                    <Link to="/teacher" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">{t('nav.teacher_space')}</Link>
                   )}
                   {role === 'admin' && (
-                    <Link to="/admin" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">Espace admin</Link>
+                    <Link to="/admin" className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">{t('nav.admin_space')}</Link>
                   )}
                 </>
               )}
@@ -90,10 +90,27 @@ function App() {
           <div id="mobile-menu" className="md:hidden border-b bg-white">
             <div className="mx-auto max-w-6xl px-4 py-3">
               <div className="flex flex-col gap-3 text-sm text-slate-700">
-                <Link to="/" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">Accueil</Link>
-                <Link to="/search" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">Recherche</Link>
-                <Link to="/login" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">Connexion</Link>
-                <Link to="/register" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">Inscription</Link>
+                <Link to="/" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">{t('nav.home')}</Link>
+                <Link to="/search" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">{t('nav.search')}</Link>
+                {!session && (
+                  <>
+                    <Link to="/login" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">{t('nav.login')}</Link>
+                    <Link to="/register" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">{t('nav.register')}</Link>
+                  </>
+                )}
+                {session && (
+                  <>
+                    {role === 'parent' && (
+                      <Link to="/parent" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">{t('nav.parent_space')}</Link>
+                    )}
+                    {role === 'teacher' && (
+                      <Link to="/teacher" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">{t('nav.teacher_space')}</Link>
+                    )}
+                    {role === 'admin' && (
+                      <Link to="/admin" onClick={() => setMobileOpen(false)} className="hover:text-emerald-800">{t('nav.admin_space')}</Link>
+                    )}
+                  </>
+                )}
                 <div className="pt-2">
                   <select
                     aria-label="language"

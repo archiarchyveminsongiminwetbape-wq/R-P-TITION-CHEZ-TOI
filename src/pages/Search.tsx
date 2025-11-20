@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useTranslation } from 'react-i18next'
 
 type Subject = { id: number; name: string }
 type Neighborhood = { id: number; name: string }
@@ -20,6 +21,7 @@ export default function Search() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [profiles, setProfiles] = useState<Record<string, Profile>>({})
   const [loading, setLoading] = useState(false)
+  const { t } = useTranslation()
 
   useEffect(() => {
     async function loadFilters() {
@@ -94,11 +96,11 @@ export default function Search() {
 
   return (
     <section className="p-6">
-      <h2 className="text-xl font-semibold mb-4">Recherche</h2>
+      <h2 className="text-xl font-semibold mb-4">{t('search.title')}</h2>
 
       <div className="grid gap-3 md:grid-cols-3 mb-6">
         <select className="border p-2 rounded" value={subjectId} onChange={(e) => setSubjectId(e.target.value ? Number(e.target.value) : '')}>
-          <option value="">Matière</option>
+          <option value="">{t('search.subject')}</option>
           {subjects.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -107,13 +109,13 @@ export default function Search() {
         </select>
 
         <select className="border p-2 rounded" value={level} onChange={(e) => setLevel((e.target.value as any) || '')}>
-          <option value="">Niveau</option>
-          <option value="college">Collège</option>
-          <option value="lycee">Lycée</option>
+          <option value="">{t('search.level')}</option>
+          <option value="college">{t('search.level_college')}</option>
+          <option value="lycee">{t('search.level_lycee')}</option>
         </select>
 
         <select className="border p-2 rounded" value={neighborhoodId} onChange={(e) => setNeighborhoodId(e.target.value ? Number(e.target.value) : '')}>
-          <option value="">Quartier</option>
+          <option value="">{t('search.neighborhood')}</option>
           {neighborhoods.map((n) => (
             <option key={n.id} value={n.id}>
               {n.name}
@@ -122,26 +124,26 @@ export default function Search() {
         </select>
       </div>
 
-      {loading && <p>Chargement…</p>}
+      {loading && <p>{t('search.loading')}</p>}
 
       <ul className="space-y-3">
-        {teachers.map((t) => {
-          const p = profiles[t.user_id]
+        {teachers.map((teacher) => {
+          const p = profiles[teacher.user_id]
           return (
-            <li key={t.user_id} className="border rounded p-3 flex items-center gap-3">
+            <li key={teacher.user_id} className="border rounded p-3 flex items-center gap-3">
               <img src={p?.avatar_url || '/logo.png'} alt="avatar" width={48} height={48} className="rounded-full" />
               <div className="flex-1">
-                <div className="font-medium">{p?.full_name || 'Professeur'}</div>
-                <div className="text-sm opacity-80">{t.bio || ''}</div>
-                <div className="text-sm">Tarif: {t.hourly_rate ? `${t.hourly_rate} XAF/h` : '—'}</div>
+                <div className="font-medium">{p?.full_name || t('search.teacher_label')}</div>
+                <div className="text-sm opacity-80">{teacher.bio || ''}</div>
+                <div className="text-sm">{t('search.price')}: {teacher.hourly_rate ? `${teacher.hourly_rate} XAF/h` : '—'}</div>
               </div>
-              <a className="px-3 py-2 border rounded" href={`/teacher/${t.user_id}`}>
-                Voir
+              <a className="px-3 py-2 border rounded" href={`/teacher/${teacher.user_id}`}>
+                {t('search.see')}
               </a>
             </li>
           )
         })}
-        {!loading && teachers.length === 0 && <li className="opacity-70">Aucun professeur trouvé</li>}
+        {!loading && teachers.length === 0 && <li className="opacity-70">{t('search.none')}</li>}
       </ul>
     </section>
   )

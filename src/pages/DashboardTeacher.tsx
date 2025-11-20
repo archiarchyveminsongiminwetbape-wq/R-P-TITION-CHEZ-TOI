@@ -148,39 +148,39 @@ export default function DashboardTeacher() {
 
   return (
     <section className="p-6 space-y-4">
-      <h2 className="text-xl font-semibold">Tableau de bord Professeur</h2>
+      <h2 className="text-xl font-semibold">{t('dashboard.teacher_title')}</h2>
 
-      {loading && <p>Chargement…</p>}
+      {loading && <p>{t('dashboard.parent_loading')}</p>}
       {notice && <p className="text-sm p-2 border rounded bg-white/70">{notice}</p>}
 
       <div className="border rounded">
-        <div className="p-3 font-semibold border-b">Mon profil</div>
+        <div className="p-3 font-semibold border-b">{t('dashboard.teacher_profile_section')}</div>
         <div className="p-3 grid gap-3 md:grid-cols-2">
           <label className="text-sm">
-            Nom complet
+            {t('auth.full_name')}
             <input className="mt-1 w-full border p-2 rounded" value={fullName} onChange={(e)=>setFullName(e.target.value)} />
           </label>
           <label className="text-sm">
-            Tarif horaire (XAF)
+            {t('dashboard.teacher_hourly_rate')}
             <input className="mt-1 w-full border p-2 rounded" type="number" min="0" value={rate} onChange={(e)=>setRate(e.target.value === '' ? '' : Number(e.target.value))} />
           </label>
           <label className="text-sm md:col-span-2">
-            Bio
+            {t('dashboard.teacher_bio')}
             <textarea className="mt-1 w-full border p-2 rounded" rows={3} value={bio} onChange={(e)=>setBio(e.target.value)} />
           </label>
           <div className="text-sm">
-            Niveaux
+            {t('dashboard.teacher_levels')}
             <div className="mt-1 flex gap-3 items-center">
-              <label><input type="checkbox" checked={levelChecked('college')} onChange={()=>toggleLevel('college')} /> Collège</label>
-              <label><input type="checkbox" checked={levelChecked('lycee')} onChange={()=>toggleLevel('lycee')} /> Lycée</label>
+              <label><input type="checkbox" checked={levelChecked('college')} onChange={()=>toggleLevel('college')} /> {t('dashboard.teacher_level_college')}</label>
+              <label><input type="checkbox" checked={levelChecked('lycee')} onChange={()=>toggleLevel('lycee')} /> {t('dashboard.teacher_level_lycee')}</label>
             </div>
           </div>
           <label className="text-sm">
-            Avatar
+            {t('dashboard.teacher_avatar')}
             <input className="mt-1 w-full" type="file" accept="image/*" onChange={(e)=>setAvatarFile(e.target.files?.[0] || null)} />
           </label>
           <div className="text-sm">
-            Matières
+            {t('dashboard.teacher_subjects')}
             <div className="mt-1 grid grid-cols-2 gap-2">
               {subjects.map(s => (
                 <label key={s.id} className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export default function DashboardTeacher() {
             </div>
           </div>
           <div className="text-sm">
-            Quartiers
+            {t('dashboard.teacher_neighborhoods')}
             <div className="mt-1 grid grid-cols-2 gap-2">
               {neighborhoods.map(n => (
                 <label key={n.id} className="flex items-center gap-2">
@@ -200,13 +200,13 @@ export default function DashboardTeacher() {
             </div>
           </div>
           <div className="md:col-span-2">
-            <button className="px-3 py-2 border rounded" disabled={saving} onClick={saveProfile}>{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+            <button className="px-3 py-2 border rounded" disabled={saving} onClick={saveProfile}>{saving ? t('dashboard.teacher_saving') : t('dashboard.teacher_save')}</button>
           </div>
         </div>
       </div>
 
       <div className="border rounded">
-        <div className="p-3 font-semibold border-b">Mes disponibilités</div>
+        <div className="p-3 font-semibold border-b">{t('dashboard.teacher_availabilities')}</div>
         <div className="p-3 grid md:grid-cols-4 gap-3">
           <select className="border p-2 rounded" value={weekday} onChange={(e)=>setWeekday(Number(e.target.value))}>
             <option value={0}>Dim</option>
@@ -238,7 +238,7 @@ export default function DashboardTeacher() {
               )
             }}
           >
-            Ajouter
+            {t('dashboard.teacher_add')}
           </button>
         </div>
         <ul className="divide-y">
@@ -248,33 +248,33 @@ export default function DashboardTeacher() {
                 <span className="font-medium mr-2">{['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][a.weekday]}</span>
                 {a.start_time} - {a.end_time}
               </div>
-              <button className="px-3 py-1 border rounded" onClick={async ()=>{ await supabase.from('availabilities').delete().eq('id', a.id) }}>Supprimer</button>
+              <button className="px-3 py-1 border rounded" onClick={async ()=>{ await supabase.from('availabilities').delete().eq('id', a.id) }}>{t('dashboard.teacher_delete')}</button>
             </li>
           ))}
-          {avails.length === 0 && <li className="p-3 opacity-70">Aucune disponibilité</li>}
+          {avails.length === 0 && <li className="p-3 opacity-70">{t('dashboard.teacher_no_availability')}</li>}
         </ul>
       </div>
 
       <div className="border rounded">
-        <div className="p-3 font-semibold border-b">Demandes / Réservations</div>
+        <div className="p-3 font-semibold border-b">{t('dashboard.teacher_requests')}</div>
         <ul className="divide-y">
           {rows.map((r) => (
             <li key={r.id} className="p-3 flex items-center gap-3">
               <div className="flex-1">
-                <div className="text-sm">Début: {new Date(r.starts_at).toLocaleString()}</div>
-                <div className="text-sm">Fin: {new Date(r.ends_at).toLocaleString()}</div>
-                <div className="text-sm">Statut: {r.status}</div>
+                <div className="text-sm">{t('dashboard.parent_start')}: {new Date(r.starts_at).toLocaleString()}</div>
+                <div className="text-sm">{t('dashboard.parent_end')}: {new Date(r.ends_at).toLocaleString()}</div>
+                <div className="text-sm">{t('dashboard.parent_status')}: {r.status}</div>
               </div>
-              <a className="px-3 py-2 border rounded" href={`/messages/${r.id}`}>Messages</a>
+              <a className="px-3 py-2 border rounded" href={`/messages/${r.id}`}>{t('dashboard.parent_messages')}</a>
               {r.status === 'pending' && (
                 <>
-                  <button className="px-3 py-2 border rounded" onClick={() => updateStatus(r.id, 'confirmed')}>Confirmer</button>
-                  <button className="px-3 py-2 border rounded" onClick={() => updateStatus(r.id, 'cancelled')}>Annuler</button>
+                  <button className="px-3 py-2 border rounded" onClick={() => updateStatus(r.id, 'confirmed')}>{t('dashboard.teacher_confirm')}</button>
+                  <button className="px-3 py-2 border rounded" onClick={() => updateStatus(r.id, 'cancelled')}>{t('dashboard.teacher_cancel')}</button>
                 </>
               )}
             </li>
           ))}
-          {!loading && rows.length === 0 && <li className="p-3 opacity-70">Aucune réservation</li>}
+          {!loading && rows.length === 0 && <li className="p-3 opacity-70">{t('dashboard.teacher_none')}</li>}
         </ul>
       </div>
     </section>

@@ -83,8 +83,8 @@ export default function TeacherProfile() {
     loadBooked()
   }, [id, dateDay])
 
-  if (loading) return <section className="p-6">Chargement…</section>
-  if (!profile || !teacher) return <section className="p-6">Professeur introuvable.</section>
+  if (loading) return <section className="p-6">{t('search.loading')}</section>
+  if (!profile || !teacher) return <section className="p-6">{t('teacher.not_found')}</section>
 
   function weekdayFromDateOnly(dateStr: string) {
     // Use noon local time to avoid timezone midnight shifts
@@ -177,27 +177,27 @@ export default function TeacherProfile() {
       <div className="flex items-center gap-4">
         <img src={profile.avatar_url || '/logo.png'} alt="avatar" width={72} height={72} className="rounded-full" />
         <div>
-          <h2 className="text-2xl font-semibold">{profile.full_name || 'Professeur'}</h2>
+          <h2 className="text-2xl font-semibold">{profile.full_name || t('search.teacher_label')}</h2>
           <div className="opacity-80">{teacher.bio || ''}</div>
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="border rounded p-3">
-          <h3 className="font-semibold mb-2">Informations</h3>
-          <div className="text-sm">Tarif: {teacher.hourly_rate ? `${teacher.hourly_rate} XAF/h` : '—'}</div>
-          <div className="text-sm">Niveaux: {teacher.levels?.join(', ') || '—'}</div>
+          <h3 className="font-semibold mb-2">{t('teacher.info')}</h3>
+          <div className="text-sm">{t('search.price')}: {teacher.hourly_rate ? `${teacher.hourly_rate} XAF/h` : '—'}</div>
+          <div className="text-sm">{t('dashboard.teacher_levels')}: {teacher.levels?.join(', ') || '—'}</div>
         </div>
         <div className="border rounded p-3">
-          <h3 className="font-semibold mb-2">Matières</h3>
+          <h3 className="font-semibold mb-2">{t('teacher.subjects')}</h3>
           <div className="text-sm">{subjects.length ? subjects.join(', ') : '—'}</div>
         </div>
         <div className="border rounded p-3">
-          <h3 className="font-semibold mb-2">Quartiers</h3>
+          <h3 className="font-semibold mb-2">{t('teacher.neighborhoods')}</h3>
           <div className="text-sm">{neighborhoods.length ? neighborhoods.join(', ') : '—'}</div>
         </div>
         <div className="border rounded p-3 md:col-span-2">
-          <h3 className="font-semibold mb-2">Disponibilités</h3>
+          <h3 className="font-semibold mb-2">{t('teacher.availabilities')}</h3>
           <ul className="grid md:grid-cols-2 gap-2 text-sm">
             {availabilities.map((a, i) => (
               <li key={i} className="border rounded p-2 bg-white/50">
@@ -205,29 +205,29 @@ export default function TeacherProfile() {
                 {a.start_time} - {a.end_time}
               </li>
             ))}
-            {availabilities.length === 0 && <li className="opacity-70">Aucune disponibilité</li>}
+            {availabilities.length === 0 && <li className="opacity-70">{t('teacher.no_availability')}</li>}
           </ul>
         </div>
       </div>
 
       <div className="border rounded p-3 space-y-3">
-        <h3 className="font-semibold">Réserver un créneau</h3>
+        <h3 className="font-semibold">{t('teacher.booking_section')}</h3>
         <div className="grid md:grid-cols-2 gap-3">
           <label className="text-sm">
-            Date
+            {t('teacher.booking_date')}
             <input type="date" className="mt-1 w-full border p-2 rounded" value={dateDay} onChange={(e)=>setDateDay(e.target.value)} />
           </label>
           <label className="text-sm">
-            Début
+            {t('teacher.booking_start')}
             <input type="datetime-local" className="mt-1 w-full border p-2 rounded" value={startsAt} onChange={(e)=>setStartsAt(e.target.value)} />
           </label>
           <label className="text-sm">
-            Fin
+            {t('teacher.booking_end')}
             <input type="datetime-local" className="mt-1 w-full border p-2 rounded" value={endsAt} onChange={(e)=>setEndsAt(e.target.value)} />
           </label>
           {dateDay && (
             <label className="text-sm md:col-span-2">
-              Choisir un créneau disponible (préremplissage)
+              {t('teacher.booking_slot_helper')}
               <select className="mt-1 w-full border p-2 rounded" onChange={(e)=>{
                 const idx = Number(e.target.value); if (!isNaN(idx)) applySlotToDate(availabilities[idx])
               }}>
@@ -251,7 +251,7 @@ export default function TeacherProfile() {
             </label>
           )}
           <div className="text-sm">
-            Matières (optionnel)
+            {t('teacher.booking_subjects_optional')}
             <div className="mt-1 grid grid-cols-2 gap-2">
               {subjectsList.map((s) => (
                 <label key={s.id} className="flex items-center gap-2">
@@ -266,7 +266,7 @@ export default function TeacherProfile() {
             </div>
           </div>
           <label className="text-sm">
-            Quartier (optionnel)
+            {t('teacher.booking_neighborhood_optional')}
             <select className="mt-1 w-full border p-2 rounded" value={neighborhoodId} onChange={(e)=>setNeighborhoodId(e.target.value?Number(e.target.value):'')}>
               <option value="">—</option>
               {neighborhoodsList.map(n=> <option key={n.id} value={n.id}>{n.name}</option>)}
@@ -274,7 +274,7 @@ export default function TeacherProfile() {
           </label>
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button onClick={createBooking} className="w-full sm:w-auto px-4 py-3 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition text-base">Réserver</button>
+        <button onClick={createBooking} className="w-full sm:w-auto px-4 py-3 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition text-base">{t('teacher.booking_submit')}</button>
       </div>
     </section>
   )

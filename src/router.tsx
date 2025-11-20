@@ -5,6 +5,7 @@ import Search from './pages/Search'
 import TeacherProfile from './pages/TeacherProfile'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ResetPassword from './pages/ResetPassword'
 import DashboardParent from './pages/DashboardParent'
 import DashboardTeacher from './pages/DashboardTeacher'
 import { ProtectedRoute } from './routes/ProtectedRoute'
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
       { path: 'teacher/:id', element: <TeacherProfile /> },
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
+      { path: 'reset-password', element: <ResetPassword /> },
       {
         path: 'admin',
         element: (

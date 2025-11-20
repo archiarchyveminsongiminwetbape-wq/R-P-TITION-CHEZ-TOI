@@ -85,13 +85,13 @@ export default function Login() {
 
   return (
     <section className="mx-auto max-w-md p-6">
-      <h2 className="text-2xl font-semibold mb-4">Connexion</h2>
+      <h2 className="text-2xl font-semibold mb-4">{t('auth.login_title')}</h2>
       <div className="rounded-lg border p-5 shadow-sm bg-white">
         <form onSubmit={onSubmit} className="space-y-3">
           <input
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
             type="email"
-            placeholder="Email"
+            placeholder={t('auth.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -99,14 +99,14 @@ export default function Login() {
           <input
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
             type="password"
-            placeholder="Mot de passe"
+            placeholder={t('auth.password')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
           {error && <p className="text-red-600 text-sm">{error}</p>}
           <button className="w-full px-4 py-3 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-60 text-base" disabled={loading}>
-            {loading ? '...' : 'Se connecter'}
+            {loading ? '...' : t('auth.login_button')}
           </button>
         </form>
       </div>
@@ -118,12 +118,12 @@ export default function Login() {
               if (!email) throw new Error('Saisissez votre email')
               if (!hasSupabaseConfig) throw new Error('Configuration Supabase manquante.')
               await supabase.auth.resend({ type: 'signup', email })
-              toast({ variant: 'success', title: 'Email de confirmation renvoyé' })
+              toast({ variant: 'success', title: t('auth.resend_confirm') })
             } catch (e: any) {
               toast({ variant: 'error', title: t('toast.error'), description: e?.message || 'Erreur' })
             }
           }}
-        >Renvoyer l'email de confirmation</button>
+        >{t('auth.resend_confirm')}</button>
         <span className="opacity-50">|</span>
         <button
           className="underline"
@@ -133,15 +133,15 @@ export default function Login() {
               if (!hasSupabaseConfig) throw new Error('Configuration Supabase manquante.')
               const redirectTo = `${window.location.origin}/reset-password`
               await supabase.auth.resetPasswordForEmail(email, { redirectTo })
-              toast({ variant: 'success', title: 'Email de réinitialisation envoyé' })
+              toast({ variant: 'success', title: t('auth.forgot_password') })
             } catch (e: any) {
               toast({ variant: 'error', title: t('toast.error'), description: e?.message || 'Erreur' })
             }
           }}
-        >Mot de passe oublié</button>
+        >{t('auth.forgot_password')}</button>
       </div>
       <p className="mt-3 text-sm">
-        Pas de compte ? <Link to="/register" className="underline">Créer un compte</Link>
+        {t('auth.no_account')} <Link to="/register" className="underline">{t('auth.link_register')}</Link>
       </p>
     </section>
   )
