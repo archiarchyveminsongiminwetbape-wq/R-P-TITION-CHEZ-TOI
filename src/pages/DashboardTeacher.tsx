@@ -19,6 +19,7 @@ export default function DashboardTeacher() {
   const { session } = useAuth()
   const [rows, setRows] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [parents, setParents] = useState<Record<string, { full_name: string | null }>>({})
   const [avails, setAvails] = useState<Array<{ id: string; weekday: number; start_time: string; end_time: string }>>([])
   const [weekday, setWeekday] = useState<number>(1)
   const [startTime, setStartTime] = useState('08:00')
@@ -36,6 +37,16 @@ export default function DashboardTeacher() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
 
+  const statusClass = (status: string) => {
+    if (status === 'pending') return 'bg-amber-50 text-amber-700 border-amber-200'
+    if (status === 'confirmed') return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    if (status === 'cancelled') return 'bg-red-50 text-red-700 border-red-200'
+    if (status === 'completed') return 'bg-slate-100 text-slate-700 border-slate-200'
+    return 'bg-slate-100 text-slate-700 border-slate-200'
+  }
+
+  const statusLabel = (status: string) => t(`dashboard.status_${status}` as 'dashboard.status_pending')
+
   async function load() {
     setLoading(true)
     const { data } = await supabase
@@ -43,7 +54,23 @@ export default function DashboardTeacher() {
       .select('id,starts_at,ends_at,status,parent_id,subject_id')
       .eq('teacher_id', session?.user.id)
       .order('starts_at', { ascending: false })
-    setRows((data as any) ?? [])
+    const bookings = (data as any as BookingRow[]) ?? []
+    setRows(bookings)
+
+    const parentIds = Array.from(new Set(bookings.map((b) => b.parent_id).filter(Boolean)))
+    if (parentIds.length) {
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id,full_name')
+        .in('id', parentIds)
+      const map: Record<string, { full_name: string | null }> = {}
+      for (const p of (profs as any[]) ?? []) {
+        map[p.id] = { full_name: p.full_name as string | null }
+      }
+      setParents(map)
+    } else {
+      setParents({})
+    }
     setLoading(false)
   }
 
@@ -261,9 +288,17 @@ export default function DashboardTeacher() {
           {rows.map((r) => (
             <li key={r.id} className="p-3 flex items-center gap-3">
               <div className="flex-1">
+                <div className="text-sm font-medium">
+                  {parents[r.parent_id]?.full_name || '—'}
+                </div>
                 <div className="text-sm">{t('dashboard.parent_start')}: {new Date(r.starts_at).toLocaleString()}</div>
                 <div className="text-sm">{t('dashboard.parent_end')}: {new Date(r.ends_at).toLocaleString()}</div>
-                <div className="text-sm">{t('dashboard.parent_status')}: {r.status}</div>
+                <div className="text-sm flex items-center gap-2">
+                  <span>{t('dashboard.parent_status')}:</span>
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${statusClass(r.status)}`}>
+                    {statusLabel(r.status)}
+                  </span>
+                </div>
               </div>
               <a className="px-3 py-2 border rounded" href={`/messages/${r.id}`}>{t('dashboard.parent_messages')}</a>
               {r.status === 'pending' && (
@@ -274,7 +309,11 @@ export default function DashboardTeacher() {
               )}
             </li>
           ))}
-          {!loading && rows.length === 0 && <li className="p-3 opacity-70">{t('dashboard.teacher_none')}</li>}
+          {!loading && rows.length === 0 && (
+            <li className="p-6 text-center text-sm text-slate-500">
+              {t('dashboard.teacher_none')}
+            </li>
+          )}
         </ul>
       </div>
     </section>

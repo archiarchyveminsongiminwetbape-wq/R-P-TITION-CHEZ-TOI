@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 type Profile = { id: string; full_name: string | null; avatar_url: string | null }
 type Teacher = { user_id: string; bio: string | null; hourly_rate: number | null; levels: string[] | null }
+type Review = { id: string; booking_id: string; parent_id: string; rating: number; comment: string | null; created_at: string }
 
 export default function TeacherProfile() {
   const { id } = useParams()
@@ -29,6 +30,16 @@ export default function TeacherProfile() {
   const [error, setError] = useState<string | null>(null)
   const [availabilities, setAvailabilities] = useState<Array<{ weekday: number; start_time: string; end_time: string }>>([])
   const [bookedSlots, setBookedSlots] = useState<Array<{ starts_at: string; ends_at: string }>>([])
+  const [bookingLoading, setBookingLoading] = useState(false)
+  const [bookingInfo, setBookingInfo] = useState<string | null>(null)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [averageRating, setAverageRating] = useState<number | null>(null)
+  const [reviewCount, setReviewCount] = useState(0)
+  const [eligibleBookingId, setEligibleBookingId] = useState<string | null>(null)
+  const [reviewRating, setReviewRating] = useState<number>(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -83,14 +94,50 @@ export default function TeacherProfile() {
     loadBooked()
   }, [id, dateDay])
 
+  useEffect(() => {
+    if (!id) return
+    async function loadReviews() {
+      const [{ data: revs }, completedRes] = await Promise.all([
+        supabase
+          .from('reviews')
+          .select('id,booking_id,parent_id,rating,comment,created_at')
+          .eq('teacher_id', id)
+          .order('created_at', { ascending: false }),
+        session?.user
+          ? supabase
+              .from('bookings')
+              .select('id,created_at')
+              .eq('teacher_id', id)
+              .eq('parent_id', session.user.id)
+              .eq('status', 'completed')
+              .order('created_at', { ascending: false })
+          : Promise.resolve({ data: null } as any),
+      ])
+
+      const list = (revs as any[] | null) ?? []
+      setReviews(list as Review[])
+      const count = list.length
+      setReviewCount(count)
+      setAverageRating(count ? list.reduce((s, r: any) => s + r.rating, 0) / count : null)
+
+      if (session?.user && completedRes.data) {
+        const completed = (completedRes.data as any[]) ?? []
+        const reviewedByParent = new Set(
+          list
+            .filter((r: any) => r.parent_id === session.user.id)
+            .map((r: any) => r.booking_id),
+        )
+        const eligible = completed.find((b: any) => !reviewedByParent.has(b.id))
+        setEligibleBookingId(eligible?.id || null)
+      } else {
+        setEligibleBookingId(null)
+      }
+    }
+    loadReviews()
+  }, [id, session?.user?.id])
+
   if (loading) return <section className="p-6">{t('search.loading')}</section>
   if (!profile || !teacher) return <section className="p-6">{t('teacher.not_found')}</section>
-
-  function weekdayFromDateOnly(dateStr: string) {
-    // Use noon local time to avoid timezone midnight shifts
-    const [y, m, d] = dateStr.split('-').map(Number)
-    return new Date(y, (m || 1) - 1, d || 1, 12, 0, 0).getDay()
-  }
 
   function applySlotToDate(slot: { start_time: string; end_time: string }) {
     if (!dateDay) return
@@ -104,16 +151,59 @@ export default function TeacherProfile() {
     setSelectedSubjectIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
+  async function submitReview(e: React.FormEvent) {
+    e.preventDefault()
+    if (!session?.user || !id || !eligibleBookingId) return
+    if (reviewRating < 1 || reviewRating > 5) {
+      setReviewError('Note invalide')
+      return
+    }
+    try {
+      setReviewSubmitting(true)
+      setReviewError(null)
+      const { data, error } = await supabase
+        .from('reviews')
+        .insert({
+          booking_id: eligibleBookingId,
+          parent_id: session.user.id,
+          teacher_id: id,
+          rating: reviewRating,
+          comment: reviewComment.trim() || null,
+        })
+        .select('id,booking_id,parent_id,rating,comment,created_at')
+        .single()
+      if (error) throw error
+      const newReview = data as any as Review
+      const newCount = reviewCount + 1
+      const newAvg = ((averageRating || 0) * reviewCount + newReview.rating) / newCount
+      setReviews((prev) => [newReview, ...prev])
+      setReviewCount(newCount)
+      setAverageRating(newAvg)
+      setEligibleBookingId(null)
+      setReviewRating(5)
+      setReviewComment('')
+    } catch (err: any) {
+      setReviewError(err?.message || 'Erreur lors de l\'envoi de l\'avis')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
   async function createBooking() {
+    if (bookingLoading) return
+    setBookingInfo(null)
+    setBookingLoading(true)
     setError(null)
     if (!session?.user || !id) {
       setError('Veuillez vous connecter comme parent pour réserver.')
       toast({ variant: 'error', title: t('toast.error'), description: 'Veuillez vous connecter comme parent pour réserver.' })
+      setBookingLoading(false)
       return
     }
     if (!startsAt || !endsAt) {
       setError('Veuillez renseigner les dates de début et de fin.')
       toast({ variant: 'error', title: t('toast.error'), description: 'Veuillez renseigner les dates de début et de fin.' })
+      setBookingLoading(false)
       return
     }
     const starts = new Date(startsAt)
@@ -121,6 +211,7 @@ export default function TeacherProfile() {
     if (!(starts instanceof Date) || !(ends instanceof Date) || isNaN(starts.getTime()) || isNaN(ends.getTime()) || ends <= starts) {
       setError('Plage horaire invalide.')
       toast({ variant: 'error', title: t('toast.error'), description: 'Plage horaire invalide.' })
+      setBookingLoading(false)
       return
     }
     // Optionally, we could validate against availabilities, but we relax this check
@@ -138,11 +229,13 @@ export default function TeacherProfile() {
     if (ovErr) {
       setError(ovErr.message)
       toast({ variant: 'error', title: t('toast.error'), description: ovErr.message })
+      setBookingLoading(false)
       return
     }
     if ((overlaps?.length || 0) > 0) {
       setError('Ce créneau chevauche une autre réservation.')
       toast({ variant: 'error', title: t('toast.error'), description: 'Ce créneau chevauche une autre réservation.' })
+      setBookingLoading(false)
       return
     }
 
@@ -161,6 +254,7 @@ export default function TeacherProfile() {
       .single()
     if (error) {
       toast({ variant: 'error', title: t('toast.error'), description: error.message })
+      setBookingLoading(false)
     } else if (data && data.id) {
       if (selectedSubjectIds.length) {
         await supabase
@@ -168,6 +262,8 @@ export default function TeacherProfile() {
           .insert(selectedSubjectIds.map((sid) => ({ booking_id: data.id, subject_id: sid })))
       }
       toast({ variant: 'success', title: t('toast.booking_ok') })
+      setBookingInfo('Réservation créée, ouverture de la messagerie...')
+      setBookingLoading(false)
       navigate(`/messages/${data.id}`)
     }
   }
@@ -187,6 +283,11 @@ export default function TeacherProfile() {
           <h3 className="font-semibold mb-2">{t('teacher.info')}</h3>
           <div className="text-sm">{t('search.price')}: {teacher.hourly_rate ? `${teacher.hourly_rate} XAF/h` : '—'}</div>
           <div className="text-sm">{t('dashboard.teacher_levels')}: {teacher.levels?.join(', ') || '—'}</div>
+          {averageRating !== null && reviewCount > 0 && (
+            <div className="text-sm mt-1">
+              {t('teacher.reviews_average')}: {averageRating.toFixed(1)} / 5 · {reviewCount} avis
+            </div>
+          )}
         </div>
         <div className="border rounded p-3">
           <h3 className="font-semibold mb-2">{t('teacher.subjects')}</h3>
@@ -274,7 +375,69 @@ export default function TeacherProfile() {
           </label>
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button onClick={createBooking} className="w-full sm:w-auto px-4 py-3 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition text-base">{t('teacher.booking_submit')}</button>
+        {bookingInfo && !error && <p className="text-emerald-700 text-sm">{bookingInfo}</p>}
+        <button
+          onClick={createBooking}
+          disabled={bookingLoading}
+          className="w-full sm:w-auto px-4 py-3 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition text-base disabled:opacity-60"
+        >
+          {bookingLoading ? '...' : t('teacher.booking_submit')}
+        </button>
+      </div>
+
+      <div className="border rounded p-3 space-y-3">
+        <h3 className="font-semibold">{t('teacher.reviews_title')}</h3>
+        {reviewCount === 0 && (
+          <p className="text-sm text-slate-500">{t('teacher.reviews_none')}</p>
+        )}
+        {reviewCount > 0 && (
+          <ul className="space-y-2 text-sm">
+            {reviews.map((r) => (
+              <li key={r.id} className="border rounded p-2 bg-white/60">
+                <div className="font-medium">{r.rating} / 5</div>
+                {r.comment && <div className="mt-1">{r.comment}</div>}
+                <div className="text-xs text-slate-500 mt-1">
+                  {new Date(r.created_at).toLocaleDateString()}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {eligibleBookingId && session?.user && (
+          <form onSubmit={submitReview} className="space-y-2 pt-3 border-t mt-2">
+            <h4 className="font-semibold text-sm">{t('teacher.reviews_form_title')}</h4>
+            {reviewError && <p className="text-red-600 text-xs">{reviewError}</p>}
+            <label className="text-xs block">
+              {t('teacher.reviews_rating_label')}
+              <select
+                className="mt-1 w-full border rounded p-1 text-sm"
+                value={reviewRating}
+                onChange={(e) => setReviewRating(Number(e.target.value))}
+              >
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs block">
+              {t('teacher.reviews_comment_label')}
+              <textarea
+                className="mt-1 w-full border rounded p-2 text-sm"
+                rows={2}
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={reviewSubmitting}
+              className="px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-60"
+            >
+              {reviewSubmitting ? '...' : t('teacher.reviews_submit')}
+            </button>
+          </form>
+        )}
       </div>
     </section>
   )

@@ -18,6 +18,7 @@ export default function Search() {
   const [subjectId, setSubjectId] = useState<number | ''>('')
   const [level, setLevel] = useState<'college' | 'lycee' | ''>('')
   const [neighborhoodId, setNeighborhoodId] = useState<number | ''>('')
+  const [maxRate, setMaxRate] = useState<number | ''>('')
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [profiles, setProfiles] = useState<Record<string, Profile>>({})
   const [loading, setLoading] = useState(false)
@@ -35,7 +36,7 @@ export default function Search() {
     loadFilters()
   }, [])
 
-  const filterDeps = useMemo(() => [subjectId, level, neighborhoodId], [subjectId, level, neighborhoodId])
+  const filterDeps = useMemo(() => [subjectId, level, neighborhoodId, maxRate], [subjectId, level, neighborhoodId, maxRate])
 
   useEffect(() => {
     async function load() {
@@ -64,6 +65,13 @@ export default function Search() {
           .eq('subject_id', subjectId)
         const allowed = new Set((links ?? []).map((l: any) => l.teacher_id))
         filtered = filtered.filter((t) => allowed.has(t.user_id))
+      }
+
+      if (maxRate !== '' && maxRate != null) {
+        const max = Number(maxRate)
+        if (!Number.isNaN(max) && max > 0) {
+          filtered = filtered.filter((t) => t.hourly_rate == null || Number(t.hourly_rate) <= max)
+        }
       }
 
       if (neighborhoodId) {
@@ -98,7 +106,7 @@ export default function Search() {
     <section className="p-6">
       <h2 className="text-xl font-semibold mb-4">{t('search.title')}</h2>
 
-      <div className="grid gap-3 md:grid-cols-3 mb-6">
+      <div className="grid gap-3 md:grid-cols-4 mb-6">
         <select className="border p-2 rounded" value={subjectId} onChange={(e) => setSubjectId(e.target.value ? Number(e.target.value) : '')}>
           <option value="">{t('search.subject')}</option>
           {subjects.map((s) => (
@@ -122,6 +130,14 @@ export default function Search() {
             </option>
           ))}
         </select>
+        <input
+          className="border p-2 rounded"
+          type="number"
+          min={0}
+          placeholder={t('search.max_price')}
+          value={maxRate}
+          onChange={(e) => setMaxRate(e.target.value ? Number(e.target.value) : '')}
+        />
       </div>
 
       {loading && <p>{t('search.loading')}</p>}
