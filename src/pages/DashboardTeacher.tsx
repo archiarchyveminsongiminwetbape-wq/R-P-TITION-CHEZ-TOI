@@ -36,6 +36,7 @@ export default function DashboardTeacher() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   const statusClass = (status: string) => {
     if (status === 'pending') return 'bg-amber-50 text-amber-700 border-amber-200'
@@ -97,25 +98,27 @@ export default function DashboardTeacher() {
       .subscribe()
     // load profile + lists
     async function loadProfile() {
-      if (!session?.user.id) return
+      if (!session?.user.id) return;
       const [{ data: prof }, { data: tprof }] = await Promise.all([
         supabase.from('profiles').select('full_name,avatar_url').eq('id', session.user.id).single(),
         supabase.from('teacher_profiles').select('bio,hourly_rate,levels').eq('user_id', session.user.id).single(),
-      ])
-      setFullName((prof?.full_name as string) || '')
-      setBio((tprof?.bio as string) || '')
-      setRate((tprof?.hourly_rate as number) ?? '')
-      setLevels(((tprof?.levels as string[]) || []) as string[])
+      ]);
+      setFullName((prof?.full_name as string) || '');
+      setBio((tprof?.bio as string) || '');
+      setRate((tprof?.hourly_rate as number) ?? '');
+      setLevels(((tprof?.levels as string[]) || []) as string[]);
+      setAvatarUrl(prof?.avatar_url || null);
+      
       const [{ data: subs }, { data: neis }, { data: linkSubs }, { data: linkNeis }] = await Promise.all([
         supabase.from('subjects').select('id,name').order('name'),
         supabase.from('neighborhoods').select('id,name').order('name'),
         supabase.from('teacher_subjects').select('subject_id').eq('teacher_id', session.user.id),
         supabase.from('teacher_neighborhoods').select('neighborhood_id').eq('teacher_id', session.user.id),
-      ])
-      setSubjects((subs as any) ?? [])
-      setNeighborhoods((neis as any) ?? [])
-      setSelectedSubjects(((linkSubs as any) ?? []).map((x: any) => x.subject_id))
-      setSelectedNeighborhoods(((linkNeis as any) ?? []).map((x: any) => x.neighborhood_id))
+      ]);
+      setSubjects((subs as any) ?? []);
+      setNeighborhoods((neis as any) ?? []);
+      setSelectedSubjects(((linkSubs as any) ?? []).map((x: any) => x.subject_id));
+      setSelectedNeighborhoods(((linkNeis as any) ?? []).map((x: any) => x.neighborhood_id));
     }
     loadProfile()
     return () => {
@@ -134,42 +137,104 @@ export default function DashboardTeacher() {
   const toggleLevel = (l: string) => setLevels(levelChecked(l) ? levels.filter((x) => x !== l) : [...levels, l])
 
   async function saveProfile() {
-    if (!session?.user.id) return
+    if (!session?.user.id) return;
     try {
-      setSaving(true)
-      setNotice(null)
-      // avatar upload first
-      let avatar_url: string | undefined
+      setSaving(true);
+      setNotice(null);
+      
+      let avatar_url = avatarUrl; // Conserver l'URL existante par défaut
+      
+      // Upload du nouvel avatar si un fichier a été sélectionné
       if (avatarFile) {
-        const ext = avatarFile.name.split('.').pop() || 'png'
-        const path = `${session.user.id}/${Date.now()}.${ext}`
-        const { error: upErr } = await supabase.storage.from('avatars').upload(path, avatarFile, { upsert: true })
-        if (upErr) throw upErr
-        const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
-        avatar_url = pub.publicUrl
+        try {
+          const ext = avatarFile.name.split('.').pop() || 'png';
+          const fileName = `${session.user.id}/${Date.now()}.${ext}`;
+          
+          // Supprimer l'ancien avatar s'il existe
+          if (avatarUrl) {
+            const oldFileName = avatarUrl.split('/').pop();
+            if (oldFileName) {
+              await supabase.storage
+                .from('avatars')
+                .remove([`${session.user.id}/${oldFileName}`])
+                .catch(console.error); // Ne pas échouer si la suppression échoue
+            }
+          }
+          
+          // Upload du nouveau fichier
+          const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, avatarFile, { 
+              cacheControl: '3600',
+              upsert: true 
+            });
+            
+          if (uploadError) throw uploadError;
+          
+          // Obtenir l'URL publique
+          const { data: { publicUrl } } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+            
+          avatar_url = publicUrl;
+          setAvatarUrl(publicUrl);
+          
+          toast({
+            variant: 'success',
+            title: 'Succès',
+            description: 'Photo de profil mise à jour avec succès'
+          });
+          
+        } catch (error) {
+          console.error('Erreur lors de l\'upload de l\'avatar:', error);
+          throw new Error('Erreur lors de la mise à jour de la photo de profil');
+        }
       }
-      // update profile + teacher profile
-      const profUpdate: any = { full_name: fullName }
-      if (avatar_url) profUpdate.avatar_url = avatar_url
-      await supabase.from('profiles').update(profUpdate).eq('id', session.user.id)
+
+      // Mise à jour du profil
+      const profUpdate: any = { full_name: fullName };
+      if (avatar_url) profUpdate.avatar_url = avatar_url;
+      
+      await supabase
+        .from('profiles')
+        .update(profUpdate)
+        .eq('id', session.user.id);
+        
       await supabase.from('teacher_profiles')
         .update({ bio, hourly_rate: rate === '' ? null : Number(rate), levels })
-        .eq('user_id', session.user.id)
+        .eq('user_id', session.user.id);
+        
       // sync join tables (simple approach: delete then insert)
-      await supabase.from('teacher_subjects').delete().eq('teacher_id', session.user.id)
-      if (selectedSubjects.length)
-        await supabase.from('teacher_subjects').insert(selectedSubjects.map((sid) => ({ teacher_id: session.user.id, subject_id: sid })))
-      await supabase.from('teacher_neighborhoods').delete().eq('teacher_id', session.user.id)
-      if (selectedNeighborhoods.length)
-        await supabase.from('teacher_neighborhoods').insert(selectedNeighborhoods.map((nid) => ({ teacher_id: session.user.id, neighborhood_id: nid })))
-      setNotice('Profil enregistré')
-      toast({ variant: 'success', title: t('toast.saved') })
-    } catch (e: any) {
-      const msg = e.message || 'Erreur lors de la sauvegarde'
-      setNotice(msg)
-      toast({ variant: 'error', title: t('toast.error'), description: msg })
+      await supabase.from('teacher_subjects').delete().eq('teacher_id', session.user.id);
+      if (selectedSubjects.length) {
+        await supabase.from('teacher_subjects')
+          .insert(selectedSubjects.map((sid) => ({ teacher_id: session.user.id, subject_id: sid })));
+      }
+      
+      await supabase.from('teacher_neighborhoods').delete().eq('teacher_id', session.user.id);
+      if (selectedNeighborhoods.length) {
+        await supabase.from('teacher_neighborhoods')
+          .insert(selectedNeighborhoods.map((nid) => ({ teacher_id: session.user.id, neighborhood_id: nid })));
+      }
+      
+      setNotice('Profil enregistré avec succès');
+      toast({ 
+        variant: 'success', 
+        title: t('toast.saved'),
+        description: 'Vos modifications ont été enregistrées'
+      });
+      
+    } catch (error: any) {
+      const errorMessage = error.message || 'Une erreur est survenue lors de la sauvegarde';
+      console.error('Erreur lors de la sauvegarde du profil:', error);
+      setNotice(errorMessage);
+      toast({ 
+        variant: 'error', 
+        title: 'Erreur', 
+        description: errorMessage 
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
@@ -204,7 +269,46 @@ export default function DashboardTeacher() {
           </div>
           <label className="text-sm">
             {t('dashboard.teacher_avatar')}
-            <input className="mt-1 w-full" type="file" accept="image/*" onChange={(e)=>setAvatarFile(e.target.files?.[0] || null)} />
+            <div className="mt-2 flex items-center gap-4">
+              {avatarUrl && (
+                <img 
+                  src={avatarUrl} 
+                  alt="Avatar actuel" 
+                  className="w-16 h-16 rounded-full object-cover border"
+                />
+              )}
+              <div className="flex-1">
+                <input 
+                  className="w-full" 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // Vérifier la taille du fichier (max 2MB)
+                      if (file.size > 2 * 1024 * 1024) {
+                        toast({
+                          variant: 'error',
+                          title: 'Erreur',
+                          description: 'La taille de l\'image ne doit pas dépasser 2MB'
+                        });
+                        return;
+                      }
+                      setAvatarFile(file);
+                      // Aperçu de l'image
+                      const reader = new FileReader();
+                      reader.onload = (e) => {
+                        setAvatarUrl(e.target?.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }} 
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Formats acceptés : JPG, PNG, GIF (max 2MB)
+                </p>
+              </div>
+            </div>
           </label>
           <div className="text-sm">
             {t('dashboard.teacher_subjects')}
