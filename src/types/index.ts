@@ -204,7 +204,7 @@ export interface ReviewFormData {
 // Types pour les états globaux
 export interface AuthState {
   user: Profile | null;
-  session: any | null; // Remplacez 'any' par le type de session de Supabase
+  session: Record<string, unknown> | null;
   loading: boolean;
   error: string | null;
 }
@@ -213,3 +213,49 @@ export interface AppState {
   auth: AuthState;
   // Ajoutez d'autres états ici si nécessaire
 }
+
+// Types pour les statistiques d'administration
+export interface BookingStats {
+  total: number;
+  pending: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface ApplicationStats {
+  profiles: number;
+  teachers: number;
+  parents: number;
+  bookings: BookingStats;
+  messages: number;
+  reviews: number;
+  average_rating: number;
+}
+
+export interface AdminTeacher extends Omit<TeacherProfile, 'subjects'> {
+  profile?: Profile;
+  subjects?: Array<{ subject: Subject }>;
+}
+
+export interface AdminParent extends Profile {
+  children?: Child[];
+}
+
+export interface AdminBooking extends Booking {
+  parent?: Profile;
+  teacher?: TeacherProfile;
+  child?: Child;
+  messages?: Message[];
+}
+
+export interface AdminMessage extends Message {
+  sender?: Profile;
+  booking?: Booking;
+}
+
+export interface AdminReview extends Review {
+  parent?: Profile;
+  teacher?: TeacherProfile;
+}
+

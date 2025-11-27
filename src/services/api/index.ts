@@ -11,3 +11,5 @@ export { neighborhoodService } from './neighborhoodService';
 export { subjectService } from './subjectService';
 export { childrenService } from './childrenService';
 export { reviewService } from './reviewService';
+export { adminService } from './adminService';
+
