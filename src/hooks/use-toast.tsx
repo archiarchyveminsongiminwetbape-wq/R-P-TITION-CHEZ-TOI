@@ -3,38 +3,39 @@ import * as ToastPrimitives from "@radix-ui/react-toast"
 import { X } from "lucide-react"
 import { cn } from "../lib/utils"
 
-type ToastVariant = 'default' | 'destructive'
+type ToastVariant = "default" | "destructive"
 
-interface ToastActionElementProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ToastActionElementProps extends React.HTMLAttributes<HTMLButtonElement> {
   altText: string
-  className?: string
   children: React.ReactNode
 }
 
-export const ToastActionElement = React.forwardRef<HTMLButtonElement, ToastActionElementProps>(
-  ({ altText, className, children, ...props }, ref) => (
-    <button
-      ref={ref}
-      className={cn(
-        "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-        className
-      )}
-      aria-label={altText}
-      {...props}
-    >
-      {children}
-    </button>
-  )
+const ToastActionElement = React.forwardRef<HTMLButtonElement, ToastActionElementProps>(
+  function ToastActionElement({ altText, className, children, ...props }, ref) {
+    return (
+      <button
+        ref={ref}
+        className={cn(
+          "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+          className
+        )}
+        aria-label={altText}
+        {...props}
+      >
+        {children}
+      </button>
+    )
+  }
 )
 ToastActionElement.displayName = "ToastActionElement"
 
 const ToastProvider = ToastPrimitives.Provider
 
-type ToastViewportElement = React.ElementRef<typeof ToastPrimitives.Viewport>
-type ToastViewportProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
-
-const ToastViewport = React.forwardRef<ToastViewportElement, ToastViewportProps>(
-  ({ className, ...props }, ref) => (
+const ToastViewport = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Viewport>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
+>(function ToastViewport({ className, ...props }, ref) {
+  return (
     <ToastPrimitives.Viewport
       ref={ref}
       className={cn(
@@ -44,7 +45,7 @@ const ToastViewport = React.forwardRef<ToastViewportElement, ToastViewportProps>
       {...props}
     />
   )
-)
+})
 ToastViewport.displayName = "ToastViewport"
 
 type ToastElement = React.ElementRef<typeof ToastPrimitives.Root>
@@ -142,21 +143,12 @@ export interface ToastType {
   onOpenChange?: (open: boolean) => void
 }
 
-const actionTypes = {
-  ADD_TOAST: 'ADD_TOAST',
-  UPDATE_TOAST: 'UPDATE_TOAST',
-  DISMISS_TOAST: 'DISMISS_TOAST',
-  REMOVE_TOAST: 'REMOVE_TOAST',
-} as const
-
 let count = 0
 
 function genId() {
   count = (count + 1) % Number.MAX_SAFE_INTEGER
   return count.toString()
 }
-
-type ActionType = typeof actionTypes[keyof typeof actionTypes]
 
 type Action =
   | {
@@ -262,9 +254,7 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToastType, 'id'>
-
-function toast({ ...props }: Toast) {
+function toast({ ...props }: Omit<ToastType, 'id'>) {
   const id = genId()
 
   const update = (props: ToastType) =>
@@ -316,6 +306,9 @@ function useToast() {
     dismiss: (toastId?: string) => dispatch({ type: 'DISMISS_TOAST', toastId }),
   }
 }
+
+type ToastViewportElement = React.ElementRef<typeof ToastPrimitives.Viewport>
+type ToastViewportProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
 
 export type {
   ToastProps,
