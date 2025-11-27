@@ -1,11 +1,16 @@
 import { supabase, hasSupabaseConfig } from './supabase';
 import type { ApiResponse } from '../types';
 
+type SupabaseError = {
+  message: string;
+  code?: string;
+};
+
 /**
  * Helper function to handle Supabase queries with proper error handling
  */
 export async function handleSupabaseQuery<T>(
-  query: Promise<{ data: T | null; error: any }>
+  query: Promise<{ data: T | null; error: SupabaseError | null }>
 ): Promise<ApiResponse<T>> {
   if (!hasSupabaseConfig) {
     return {
@@ -29,12 +34,13 @@ export async function handleSupabaseQuery<T>(
       };
     }
 
-    return { data };
-  } catch (error: any) {
+    return { data: data || undefined };
+  } catch (error: unknown) {
     console.error('Unexpected error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return {
       error: {
-        message: error?.message || 'An unexpected error occurred',
+        message: errorMessage,
         code: 'UNEXPECTED_ERROR',
       },
     };

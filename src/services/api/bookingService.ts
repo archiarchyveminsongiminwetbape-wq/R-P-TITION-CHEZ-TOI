@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import type { Booking, BookingStatus, Level } from '../../types';
+import type { BookingStatus } from '../../types';
 
 /**
  * Service pour gérer les réservations de cours

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { X } from "lucide-react"
@@ -190,7 +191,7 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
-export const reducer = (state: State, action: Action): State => {
+const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case 'ADD_TOAST':
       return {
@@ -254,39 +255,6 @@ function dispatch(action: Action) {
   })
 }
 
-function toast({ ...props }: Omit<ToastType, 'id'>) {
-  const id = genId()
-
-  const update = (props: ToastType) =>
-    dispatch({
-      type: 'UPDATE_TOAST',
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: 'DISMISS_TOAST', toastId: id })
-
-  dispatch({
-    type: 'ADD_TOAST',
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open: boolean) => {
-        if (!open) dismiss()
-      },
-    },
-  })
-
-  return {
-    id: id,
-    dismiss,
-    update: (props: ToastType) =>
-      update({
-        ...props,
-        id,
-      }),
-  }
-}
-
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -298,11 +266,42 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [])
 
   return {
     ...state,
-    toast,
+    toast: (props: Omit<ToastType, 'id'>) => {
+      const id = genId()
+
+      const update = (props: ToastType) =>
+        dispatch({
+          type: 'UPDATE_TOAST',
+          toast: { ...props, id },
+        })
+      const dismiss = () => dispatch({ type: 'DISMISS_TOAST', toastId: id })
+
+      dispatch({
+        type: 'ADD_TOAST',
+        toast: {
+          ...props,
+          id,
+          open: true,
+          onOpenChange: (open: boolean) => {
+            if (!open) dismiss()
+          },
+        },
+      })
+
+      return {
+        id: id,
+        dismiss,
+        update: (props: ToastType) =>
+          update({
+            ...props,
+            id,
+          }),
+      }
+    },
     dismiss: (toastId?: string) => dispatch({ type: 'DISMISS_TOAST', toastId }),
   }
 }
@@ -333,5 +332,4 @@ export {
   ToastClose,
   ToastAction,
   useToast,
-  toast,
 }

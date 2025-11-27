@@ -1,5 +1,4 @@
 import { supabase } from '../../lib/supabase';
-import { handleSupabaseQuery } from '../../lib/supabase-utils';
 import type { Profile, UserRole } from '../../types';
 
 /**
@@ -10,37 +9,49 @@ export const profileService = {
    * Récupère le profil d'un utilisateur par son ID
    */
   async getProfile(userId: string) {
-    const query = supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
-    return handleSupabaseQuery<Profile>(query);
+    
+    if (error) {
+      return { error: { message: error.message, code: error.code } };
+    }
+    return { data };
   },
 
   /**
    * Met à jour le profil d'un utilisateur
    */
   async updateProfile(userId: string, updates: Partial<Profile>) {
-    const query = supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update(updates)
       .eq('id', userId)
       .select()
       .single();
-    return handleSupabaseQuery<Profile>(query);
+    
+    if (error) {
+      return { error: { message: error.message, code: error.code } };
+    }
+    return { data };
   },
 
   /**
    * Crée un nouveau profil utilisateur
    */
   async createProfile(profile: Omit<Profile, 'created_at' | 'updated_at'>) {
-    const query = supabase
+    const { data, error } = await supabase
       .from('profiles')
       .insert(profile)
       .select()
       .single();
-    return handleSupabaseQuery<Profile>(query);
+    
+    if (error) {
+      return { error: { message: error.message, code: error.code } };
+    }
+    return { data };
   },
 
   /**
@@ -73,13 +84,17 @@ export const profileService = {
    * Met à jour le rôle d'un utilisateur (admin uniquement)
    */
   async updateUserRole(userId: string, role: UserRole) {
-    const query = supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update({ role })
       .eq('id', userId)
       .select()
       .single();
-    return handleSupabaseQuery<Profile>(query);
+    
+    if (error) {
+      return { error: { message: error.message, code: error.code } };
+    }
+    return { data };
   },
 
   /**
@@ -95,6 +110,11 @@ export const profileService = {
       queryBuilder = queryBuilder.eq('role', role);
     }
 
-    return handleSupabaseQuery<Profile[]>(queryBuilder);
+    const { data, error } = await queryBuilder;
+    
+    if (error) {
+      return { error: { message: error.message, code: error.code } };
+    }
+    return { data };
   }
 };

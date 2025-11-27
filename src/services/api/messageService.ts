@@ -75,17 +75,23 @@ export const messageService = {
    * Récupère le nombre de messages non lus pour un utilisateur
    */
   async getUnreadCount(userId: string) {
+    // Récupérer d'abord les IDs des réservations de l'utilisateur
+    const { data: bookingIds, error: bookingError } = await supabase
+      .from('bookings')
+      .select('id')
+      .or(`parent_id.eq.${userId},teacher_id.eq.${userId}`);
+    
+    if (bookingError) {
+      return { error: { message: bookingError.message, code: bookingError.code } };
+    }
+
+    // Récupérer le nombre de messages non lus pour ces réservations
     const { count, error } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('read_at', null)
       .neq('sender_id', userId)
-      .in('booking_id', 
-        supabase
-          .from('bookings')
-          .select('id')
-          .or(`parent_id.eq.${userId},teacher_id.eq.${userId}`)
-      );
+      .in('booking_id', bookingIds?.map(b => b.id) || []);
     
     if (error) {
       return { error: { message: error.message, code: error.code } };
